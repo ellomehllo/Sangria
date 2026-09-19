@@ -91,6 +91,16 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
     /// The custom virtual desktop height in pixels. `nil` inherits from bottle.
     public var customResolutionHeight: Int?
 
+    // MARK: - Windows Version
+
+    /// The Windows version this executable sees. `nil` inherits from bottle.
+    ///
+    /// Written to the executable's `AppDefaults` key on each launch, so it
+    /// applies to this executable only, not to anything it starts. Reporting an
+    /// older Windows is one way to make a game that picks its renderer by OS
+    /// version choose Direct3D 11 over Direct3D 12.
+    public var windowsVersion: WinVersion?
+
     // MARK: - DLL Overrides
 
     /// Program-specific DLL overrides. `nil` inherits from bottle.
@@ -128,6 +138,7 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
             && resolutionPreset == nil
             && customResolutionWidth == nil
             && customResolutionHeight == nil
+            && windowsVersion == nil
             && dllOverrides == nil
     }
 
@@ -156,6 +167,7 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
         self.resolutionPreset = container.decodeLenientIfPresent(ResolutionPreset.self, forKey: .resolutionPreset)
         self.customResolutionWidth = try container.decodeIfPresent(Int.self, forKey: .customResolutionWidth)
         self.customResolutionHeight = try container.decodeIfPresent(Int.self, forKey: .customResolutionHeight)
+        self.windowsVersion = container.decodeLenientIfPresent(WinVersion.self, forKey: .windowsVersion)
         self.dllOverrides = try container.decodeIfPresent([DLLOverrideEntry].self, forKey: .dllOverrides)
         self.taggedVerbs = try container.decodeIfPresent([String].self, forKey: .taggedVerbs)
     }

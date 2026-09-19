@@ -48,6 +48,7 @@ struct ProgramOverrideSettingsView: View {
             performanceGroup
             inputGroup
             displayGroup
+            windowsVersionGroup
             dllOverridesGroup
             winetricksSection
             resetButton
@@ -458,6 +459,29 @@ struct ProgramOverrideSettingsView: View {
             .foregroundStyle(.secondary)
     }
 
+    // MARK: - Windows Version Group
+
+    private var windowsVersionGroup: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Windows Version", isOn: windowsVersionOverrideBinding)
+            if program.settings.overrides?.windowsVersion != nil {
+                Picker("config.winVersion", selection: windowsVersionBinding) {
+                    ForEach(WinVersion.allCases.reversed(), id: \.self) {
+                        Text($0.pretty()).tag($0)
+                    }
+                }
+                Text(
+                    "Applies to this executable only, from its next launch. Some games that choose their " +
+                        "renderer by Windows version use Direct3D 11 when they see Windows 7."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                inheritedSummary(bottle.settings.windowsVersion.pretty())
+            }
+        }
+    }
+
     // MARK: - DLL Overrides Group
 
     private var dllOverridesGroup: some View {
@@ -721,6 +745,23 @@ struct ProgramOverrideSettingsView: View {
                     program.settings.overrides?.customResolutionHeight = nil
                 }
             }
+        )
+    }
+
+    private var windowsVersionOverrideBinding: Binding<Bool> {
+        Binding(
+            get: { program.settings.overrides?.windowsVersion != nil },
+            set: { isOn in
+                ensureOverrides()
+                program.settings.overrides?.windowsVersion = isOn ? bottle.settings.windowsVersion : nil
+            }
+        )
+    }
+
+    private var windowsVersionBinding: Binding<WinVersion> {
+        Binding(
+            get: { program.settings.overrides?.windowsVersion ?? bottle.settings.windowsVersion },
+            set: { program.settings.overrides?.windowsVersion = $0 }
         )
     }
 

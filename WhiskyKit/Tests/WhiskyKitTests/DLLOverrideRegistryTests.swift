@@ -163,6 +163,38 @@ final class DLLOverrideRegistryTests: XCTestCase {
         XCTAssertLessThan(d3d9, dxgi)
     }
 
+    // MARK: - Windows version
+
+    func testWindowsVersionIsSetOnTheExecutablesAppDefaultsKey() {
+        let doc = Wine.registryDocument(
+            for: [(key: Wine.DLLOverrideScope.program("Game.exe").registryKey, overrides: ["d3d12": "b"])],
+            windowsVersion: (executable: "Game.exe", version: .win7)
+        )
+        XCTAssertTrue(doc.contains("[HKCU\\Software\\Wine\\AppDefaults\\Game.exe]\r\n\"Version\"=\"win7\""))
+        // The DllOverrides replace must not take the version with it: it deletes
+        // the subkey only, never the key the version lives on.
+        XCTAssertFalse(doc.contains("[-HKCU\\Software\\Wine\\AppDefaults\\Game.exe]"))
+        XCTAssertTrue(doc.contains("[-HKCU\\Software\\Wine\\AppDefaults\\Game.exe\\DllOverrides]"))
+    }
+
+    /// Clearing the override has to remove what an earlier launch wrote.
+    func testNoWindowsVersionDeletesTheValue() {
+        let doc = Wine.registryDocument(for: [], windowsVersion: (executable: "Game.exe", version: nil))
+        XCTAssertTrue(doc.contains("[HKCU\\Software\\Wine\\AppDefaults\\Game.exe]\r\n\"Version\"=-"))
+    }
+
+    func testWindowsVersionIsOptional() {
+        let doc = Wine.registryDocument(for: [(key: #"HKCU\A"#, overrides: ["d3d11": "n,b"])])
+        XCTAssertFalse(doc.contains("\"Version\""))
+    }
+
+    func testProgramScopeKeyIsUnchanged() {
+        XCTAssertEqual(
+            Wine.DLLOverrideScope.program("Game.exe").registryKey,
+            #"HKCU\Software\Wine\AppDefaults\Game.exe\DllOverrides"#
+        )
+    }
+
     func testDocumentUsesCRLF() {
         let doc = Wine.registryDocument(for: [(key: #"HKCU\A"#, overrides: ["d3d11": "n,b"])])
         XCTAssertTrue(doc.contains("\r\n"))

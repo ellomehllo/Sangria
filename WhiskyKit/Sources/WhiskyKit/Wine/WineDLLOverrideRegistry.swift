@@ -32,12 +32,20 @@ public extension Wine {
             case .bottle:
                 #"HKCU\Software\Wine\DllOverrides"#
             case let .program(executable):
-                // \\#( is a literal backslash then the interpolation; \#( alone
-                // would swallow the path separator.
-                #"HKCU\Software\Wine\AppDefaults\\#(executable)\DllOverrides"#
+                Self.appDefaultsKey(for: executable) + #"\DllOverrides"#
             }
         }
+
+        /// The per-executable key Wine reads program-specific settings from.
+        static func appDefaultsKey(for executable: String) -> String {
+            // \\#( is a literal backslash then the interpolation; \#( alone
+            // would swallow the path separator.
+            #"HKCU\Software\Wine\AppDefaults\\#(executable)"#
+        }
     }
+
+    /// A Windows version for one executable; `version` `nil` removes it.
+    typealias ProgramWindowsVersion = (executable: String, version: WinVersion?)
 
     private static let dllOverrideLogger = Logger(
         subsystem: "com.isaacmarovitz.WhiskyKit", category: "dll-overrides"
@@ -53,12 +61,16 @@ public extension Wine {
     ///   - bottle: The bottle whose prefix registry is written.
     ///   - scopes: Each scope and the `WINEDLLOVERRIDES`-syntax string it
     ///     should hold. An empty string clears that scope.
+    ///   - windowsVersion: A per-executable Windows version to set or clear
+    ///     in the same import.
     @MainActor
     static func syncDLLOverrides(
-        bottle: Bottle, scopes: [(scope: DLLOverrideScope, overrides: String)]
+        bottle: Bottle, scopes: [(scope: DLLOverrideScope, overrides: String)],
+        windowsVersion: ProgramWindowsVersion? = nil
     ) async throws {
         let document = registryDocument(
-            for: scopes.map { (key: $0.scope.registryKey, overrides: parseDLLOverrides($0.overrides)) }
+            for: scopes.map { (key: $0.scope.registryKey, overrides: parseDLLOverrides($0.overrides)) },
+            windowsVersion: windowsVersion
         )
         let url = FileManager.default.temporaryDirectory
             .appending(path: "whisky-dll-overrides-\(UUID().uuidString).reg")
@@ -84,12 +96,17 @@ public extension Wine {
     /// - Parameter applyToDescendants: When the overrides describe something this
     ///   process will *spawn*, `AppDefaults` cannot express it — that is keyed on
     ///   an executable whose name is not known here — so the variable stays.
+    /// - Parameter windowsVersion: The program's Windows version override.
+    ///   Written to its `AppDefaults` key, or removed from it when `nil`, so
+    ///   clearing the override takes effect on the next launch. Rides this
+    ///   import rather than costing a wine process of its own.
     @MainActor
     static func applyDLLOverrides(
         for url: URL,
         bottle: Bottle,
         wineEnvironment: inout [String: String],
-        applyToDescendants: Bool
+        applyToDescendants: Bool,
+        windowsVersion: WinVersion? = nil
     ) async throws {
         var scopes: [(scope: DLLOverrideScope, overrides: String)] = [
             (scope: .bottle, overrides: constructWineEnvironment(for: bottle)["WINEDLLOVERRIDES"] ?? "")
@@ -123,15 +140,30 @@ public extension Wine {
             scopes.append((scope: .program(url.lastPathComponent), overrides: programOverrides))
         }
 
-        try await syncDLLOverrides(bottle: bottle, scopes: scopes)
+        try await syncDLLOverrides(
+            bottle: bottle, scopes: scopes,
+            windowsVersion: (executable: url.lastPathComponent, version: windowsVersion)
+        )
     }
 
     /// Renders a `.reg` leaving each key holding exactly `overrides`.
     ///
     /// `[-Key]` then `[Key]` is a replace, since `.reg` runs in order. That is
     /// what prunes stale values without reading the key back first.
-    static func registryDocument(for scopes: [(key: String, overrides: [String: String])]) -> String {
+    ///
+    /// A Windows version is a single value on the executable's `AppDefaults`
+    /// key itself, which also parents its `DllOverrides`, so it is set or
+    /// deleted (`=-`) in place instead of replacing the key.
+    static func registryDocument(
+        for scopes: [(key: String, overrides: [String: String])],
+        windowsVersion: ProgramWindowsVersion? = nil
+    ) -> String {
         var lines = ["Windows Registry Editor Version 5.00", ""]
+        if let windowsVersion {
+            lines.append("[\(DLLOverrideScope.appDefaultsKey(for: windowsVersion.executable))]")
+            lines.append("\"Version\"=" + (windowsVersion.version.map { "\"\($0.rawValue)\"" } ?? "-"))
+            lines.append("")
+        }
         for scope in scopes {
             lines.append("[-\(scope.key)]")
             lines.append("")

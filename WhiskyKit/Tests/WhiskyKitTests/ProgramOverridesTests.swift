@@ -101,6 +101,37 @@ final class ProgramOverridesTests: XCTestCase {
         XCTAssertEqual(decoded.enhancedSync, .msync)
     }
 
+    func testWindowsVersionCountsAsAnOverrideAndRoundTrips() throws {
+        var overrides = ProgramOverrides()
+        overrides.windowsVersion = .win7
+        XCTAssertFalse(overrides.isEmpty)
+
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .xml
+        let data = try encoder.encode(overrides)
+        let decoded = try PropertyListDecoder().decode(ProgramOverrides.self, from: data)
+        XCTAssertEqual(decoded.windowsVersion, .win7)
+        XCTAssertNil(decoded.graphicsBackend)
+    }
+
+    func testUnknownWindowsVersionDecodesToNil() throws {
+        var overrides = ProgramOverrides()
+        overrides.windowsVersion = .win81
+        overrides.enhancedSync = .msync
+
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .xml
+        let data = try encoder.encode(overrides)
+
+        let xml = try XCTUnwrap(String(data: data, encoding: .utf8))
+        XCTAssertTrue(xml.contains("<string>win81</string>"), "encoding shape changed; test no longer substitutes")
+        let mutated = xml.replacingOccurrences(of: "<string>win81</string>", with: "<string>win12</string>")
+        let decoded = try PropertyListDecoder().decode(ProgramOverrides.self, from: Data(mutated.utf8))
+
+        XCTAssertNil(decoded.windowsVersion)
+        XCTAssertEqual(decoded.enhancedSync, .msync)
+    }
+
     func testUnknownPerformancePresetDecodesToNil() throws {
         // Lenient decode covers all string-backed enums in the overrides, not just
         // the graphics backend — an unknown performancePreset must not fail the decode.

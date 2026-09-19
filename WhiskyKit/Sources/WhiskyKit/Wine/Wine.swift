@@ -350,7 +350,8 @@ public class Wine {
         try await applyDLLOverrides(
             for: url, bottle: bottle,
             wineEnvironment: &wineEnvironment,
-            applyToDescendants: overridesApplyToDescendants
+            applyToDescendants: overridesApplyToDescendants,
+            windowsVersion: programOverrides?.windowsVersion
         )
 
         // Create a run log entry to track this session
