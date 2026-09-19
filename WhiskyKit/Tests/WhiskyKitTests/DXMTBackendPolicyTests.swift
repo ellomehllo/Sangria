@@ -55,16 +55,27 @@ struct DXMTBackendPolicyTests {
         #expect(resolve(api: d3d12, d3dMetal: true) == .d3dMetal)
     }
 
-    @Test("Without D3DMetal, a Direct3D 12 title stays on DXMT for the API check to refuse")
+    @Test("Without D3DMetal, a title that imports d3d12 goes to WineD3D, where Wine's vkd3d runs it")
     func d3d12WithoutD3DMetal() {
-        #expect(resolve(api: d3d12, d3dMetal: false) == .dxmt)
+        #expect(resolve(api: d3d12, d3dMetal: false) == .wined3d)
+        let result = GraphicsBackendResolver.resolveWithReason(
+            api: d3d12, runtimeInfo: dxmtRuntime, d3dMetalInstalled: false, dxmtRuntimeNative: true
+        )
+        #expect(result.reason.contains("vkd3d"))
     }
 
     @Test("The Agility SDK folder alone marks a title as Direct3D 12")
     func agilitySDKCountsAsD3D12() {
         let profile = GraphicsAPIProfile(importedAPIs: [.d3d11], hasAgilitySDK: true)
         #expect(profile.usesD3D12)
+        #expect(!profile.importsD3D12)
         #expect(resolve(api: profile, d3dMetal: true) == .d3dMetal)
+    }
+
+    @Test("Without D3DMetal, an Agility-SDK-only title stays on DXMT, whose disabled d3d12 lets it fall back")
+    func agilitySDKWithoutD3DMetal() {
+        let profile = GraphicsAPIProfile(importedAPIs: [.d3d11], hasAgilitySDK: true)
+        #expect(resolve(api: profile, d3dMetal: false) == .dxmt)
     }
 
     @Test("Direct3D 9-only titles resolve to DXVK when its payload ships d3d9")
@@ -152,25 +163,55 @@ struct DXMTBackendPolicyTests {
         #expect(assessment.isUnsupported)
         #expect(assessment.suggestion == .d3dMetal)
         #expect(assessment.message?.contains("doesn't support yet") == true)
-        #expect(assessment.message?.contains("Try D3DMetal") == true)
+        #expect(assessment.message?.contains("Use D3DMetal") == true)
     }
 
-    @Test("Without D3DMetal the refusal explains how to get it and suggests nothing unusable")
+    @Test("Without D3DMetal the refusal points at WineD3D, where vkd3d runs Direct3D 12")
     func d3d12WithoutD3DMetalMessage() {
-        let assessment = BackendAPIAssessment.assess(backend: .dxmt, profile: d3d12, d3dMetalAvailable: false)
-        #expect(assessment.isUnsupported)
-        #expect(assessment.suggestion == nil)
-        #expect(assessment.message?.contains("Game Porting Toolkit") == true)
+        for backend in [GraphicsBackend.dxmt, .dxvk] {
+            let assessment = BackendAPIAssessment.assess(backend: backend, profile: d3d12, d3dMetalAvailable: false)
+            #expect(assessment.isUnsupported)
+            #expect(assessment.suggestion == .wined3d)
+            #expect(assessment.message?.contains("vkd3d") == true)
+            #expect(assessment.message?.contains("Game Porting Toolkit") == true)
+        }
     }
 
-    @Test("Direct3D 12 on DXVK and WineD3D is refused too; on D3DMetal it is fine")
+    @Test("Direct3D 12 on DXVK is refused; on WineD3D it is a caution; on D3DMetal it is fine")
     func d3d12Matrix() {
-        for backend in [GraphicsBackend.dxvk, .wined3d] {
-            #expect(BackendAPIAssessment.assess(backend: backend, profile: d3d12, d3dMetalAvailable: true)
-                .isUnsupported)
-        }
+        #expect(BackendAPIAssessment.assess(backend: .dxvk, profile: d3d12, d3dMetalAvailable: true).isUnsupported)
+        let wined3d = BackendAPIAssessment.assess(backend: .wined3d, profile: d3d12, d3dMetalAvailable: true)
+        #expect(!wined3d.isUnsupported)
+        #expect(wined3d.suggestion == .d3dMetal)
+        #expect(wined3d.message?.contains("vkd3d") == true)
+        let alone = BackendAPIAssessment.assess(backend: .wined3d, profile: d3d12, d3dMetalAvailable: false)
+        #expect(!alone.isUnsupported)
+        #expect(alone.suggestion == nil)
         #expect(BackendAPIAssessment.assess(backend: .d3dMetal, profile: d3d12, d3dMetalAvailable: true)
             == .compatible)
+    }
+
+    @Test("On WineD3D, a Direct3D 12 title that also imports Direct3D 11 is warned about it")
+    func d3d12WithD3D11OnWineD3D() {
+        let mixed = GraphicsAPIProfile(importedAPIs: [.d3d12, .d3d11])
+        let assessment = BackendAPIAssessment.assess(backend: .wined3d, profile: mixed, d3dMetalAvailable: false)
+        #expect(assessment.message?.contains("Direct3D 10/11") == true)
+        let plain = BackendAPIAssessment.assess(backend: .wined3d, profile: d3d12, d3dMetalAvailable: false)
+        #expect(plain.message?.contains("Direct3D 10/11") == false)
+    }
+
+    @Test("An Agility-SDK-only title on DXMT or DXVK is a caution naming the Direct3D 11 switches")
+    func agilitySDKOnTranslatorsCaution() {
+        let profile = GraphicsAPIProfile(importedAPIs: [.d3d11], hasAgilitySDK: true)
+        for backend in [GraphicsBackend.dxmt, .dxvk] {
+            let assessment = BackendAPIAssessment.assess(backend: backend, profile: profile, d3dMetalAvailable: false)
+            #expect(!assessment.isUnsupported)
+            #expect(assessment.suggestion == nil)
+            #expect(assessment.message?.contains("-dx11") == true)
+            #expect(assessment.message?.contains("-force-d3d11") == true)
+        }
+        #expect(BackendAPIAssessment.assess(backend: .dxmt, profile: profile, d3dMetalAvailable: true)
+            .suggestion == .d3dMetal)
     }
 
     @Test("Direct3D 9 on DXMT is a caution pointing at DXVK when DXVK has d3d9, not a refusal")
@@ -227,6 +268,8 @@ struct DXMTBackendPolicyTests {
         try Wine.checkGraphicsAPI(preview(nil, .dxmt))
         try Wine.checkGraphicsAPI(preview(d3d9, .dxmt))
         try Wine.checkGraphicsAPI(preview(d3d12, .d3dMetal))
+        try Wine.checkGraphicsAPI(preview(d3d12, .wined3d))
+        try Wine.checkGraphicsAPI(preview(GraphicsAPIProfile(importedAPIs: [.d3d11], hasAgilitySDK: true), .dxmt))
     }
 
     // MARK: - Profiles

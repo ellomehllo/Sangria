@@ -103,6 +103,14 @@ public struct GraphicsAPIProfile: Equatable, Sendable {
         importedAPIs.contains(.d3d12) || hasAgilitySDK
     }
 
+    /// Whether `d3d12.dll` is in the import table, so the loader must resolve
+    /// it before any of the program runs. Such a program cannot fall back to
+    /// Direct3D 11: with `d3d12` disabled it never starts. An Agility SDK folder
+    /// alone means the engine loads `d3d12` itself and may have that fallback.
+    public var importsD3D12: Bool {
+        importedAPIs.contains(.d3d12)
+    }
+
     /// Whether the only Direct3D the program imports predates Direct3D 10,
     /// which DXMT does not translate.
     public var isLegacyDirect3DOnly: Bool {
@@ -184,7 +192,7 @@ public enum BackendAPIAssessment: Equatable, Sendable {
     /// - Parameters:
     ///   - backend: The concrete backend the launch resolved to.
     ///   - profile: The program's API evidence.
-    ///   - d3dMetalAvailable: Whether D3DMetal's payload is installed, which
+    ///   - d3dMetalAvailable: Whether D3DMetal's payload is deployed, which
     ///     decides whether it can be offered as the way out.
     ///   - dxvkHasD3D9: Whether the runtime's DXVK ships `d3d9.dll`. Neither
     ///     DXMT nor D3DMetal translates Direct3D 9, so without it every
@@ -196,30 +204,7 @@ public enum BackendAPIAssessment: Equatable, Sendable {
         dxvkHasD3D9: Bool = false
     ) -> BackendAPIAssessment {
         if profile.usesD3D12 {
-            let tryD3DMetal = d3dMetalAvailable
-                ? "Try D3DMetal for this program."
-                : "D3DMetal handles Direct3D 12, but its payload isn't installed. Import it from Apple's " +
-                "Game Porting Toolkit to run this title."
-            switch backend {
-            case .dxmt:
-                return .unsupported(
-                    message: "This program uses Direct3D 12, which DXMT doesn't support yet " +
-                        "(DXMT covers Direct3D 10 and 11). \(tryD3DMetal)",
-                    suggestion: d3dMetalAvailable ? .d3dMetal : nil
-                )
-            case .dxvk:
-                return .unsupported(
-                    message: "This program uses Direct3D 12, which DXVK on macOS doesn't support. \(tryD3DMetal)",
-                    suggestion: d3dMetalAvailable ? .d3dMetal : nil
-                )
-            case .wined3d:
-                return .unsupported(
-                    message: "This program uses Direct3D 12, which WineD3D can't run on macOS. \(tryD3DMetal)",
-                    suggestion: d3dMetalAvailable ? .d3dMetal : nil
-                )
-            case .d3dMetal, .recommended:
-                return .compatible
-            }
+            return assessD3D12(backend: backend, profile: profile, d3dMetalAvailable: d3dMetalAvailable)
         }
         let translatesLegacy = backend == .wined3d || (backend == .dxvk && dxvkHasD3D9)
         if profile.isLegacyDirect3DOnly, !translatesLegacy {
@@ -239,6 +224,57 @@ public enum BackendAPIAssessment: Equatable, Sendable {
             )
         }
         return .compatible
+    }
+
+    /// The Direct3D 12 half of ``assess(backend:profile:d3dMetalAvailable:dxvkHasD3D9:)``.
+    ///
+    /// Three routes exist. D3DMetal is the real one. WineD3D resets every
+    /// translation DLL to builtin, which puts Wine's own `d3d12` in charge:
+    /// vkd3d over winevulkan and MoltenVK, with Wine's `dxgi` beside it (DXMT's
+    /// `dxgi` can't host its swapchain). DXMT and DXVK disable `d3d12`, which
+    /// only an engine that loads it itself can survive, by falling back to
+    /// Direct3D 11.
+    private static func assessD3D12(
+        backend: GraphicsBackend,
+        profile: GraphicsAPIProfile,
+        d3dMetalAvailable: Bool
+    ) -> BackendAPIAssessment {
+        let translator = backend == .dxmt || backend == .dxvk
+        if translator, !profile.importsD3D12 {
+            return .caution(
+                message: "This program ships the Direct3D 12 Agility SDK. \(backend.displayName) turns " +
+                    "Direct3D 12 off, so the game has to fall back to Direct3D 11. If it doesn't do that on its " +
+                    "own, add -dx11 (Unreal) or -force-d3d11 (Unity) to its arguments.",
+                suggestion: d3dMetalAvailable ? .d3dMetal : nil
+            )
+        }
+        let wayOut = d3dMetalAvailable
+            ? "Turn on Use D3DMetal for this program: right-click it, or tick the box next to Run on its page."
+            : "D3DMetal (Apple's Game Porting Toolkit) isn't available in this runtime, but Wine's own " +
+            "Direct3D 12 (vkd3d, through Vulkan and MoltenVK) can run it: use WineD3D for this program."
+        let fallback: GraphicsBackend = d3dMetalAvailable ? .d3dMetal : .wined3d
+        switch backend {
+        case .dxmt:
+            return .unsupported(
+                message: "This program uses Direct3D 12, which DXMT doesn't support yet " +
+                    "(DXMT covers Direct3D 10 and 11). \(wayOut)",
+                suggestion: fallback
+            )
+        case .dxvk:
+            return .unsupported(
+                message: "This program uses Direct3D 12, which DXVK on macOS doesn't support. \(wayOut)",
+                suggestion: fallback
+            )
+        case .wined3d:
+            var message = "Direct3D 12 runs through Wine's vkd3d here (Vulkan, then MoltenVK): expect lower " +
+                "performance and fewer features than D3DMetal."
+            if !profile.importedAPIs.isDisjoint(with: [.d3d10, .d3d11]) {
+                message += " This program also uses Direct3D 10/11, which WineD3D can't start on current macOS."
+            }
+            return .caution(message: message, suggestion: d3dMetalAvailable ? .d3dMetal : nil)
+        case .d3dMetal, .recommended:
+            return .compatible
+        }
     }
 }
 

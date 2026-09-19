@@ -34,6 +34,10 @@ public enum GraphicsBackendResolver {
     /// 1. Launchers get DXVK. Their Chromium UIs cannot render on D3DMetal or DXMT.
     /// 2. A program that needs Direct3D 12 gets D3DMetal when its payload is
     ///    installed, because neither DXMT nor DXVK on macOS has a D3D12 path.
+    ///    Without it, a program that imports `d3d12.dll` gets WineD3D, whose
+    ///    all-builtin set puts Wine's vkd3d (over MoltenVK) behind `d3d12`. One
+    ///    that only ships the Agility SDK falls through to DXMT, which disables
+    ///    `d3d12` so the engine can pick its Direct3D 11 renderer.
     /// 3. A program that only imports Direct3D 9 or older gets DXVK, since
     ///    DXMT would leave it on WineD3D, but only when the runtime's DXVK
     ///    actually ships `d3d9.dll`.
@@ -93,8 +97,19 @@ public enum GraphicsBackendResolver {
         if let launcher {
             return (.dxvk, "\(launcher.displayName) is a launcher; its UI only renders on DXVK")
         }
-        if let api, api.usesD3D12, d3dMetalInstalled {
-            return (.d3dMetal, "Direct3D 12 title; DXMT and DXVK have no Direct3D 12 path")
+        if let api, api.usesD3D12 {
+            if d3dMetalInstalled {
+                return (.d3dMetal, "Direct3D 12 title; DXMT and DXVK have no Direct3D 12 path")
+            }
+            // An imported d3d12 loads before any of the program runs, so there
+            // is no Direct3D 11 to fall back to. Wine's builtin is the one
+            // Direct3D 12 left, and it needs Wine's dxgi, not DXMT's.
+            if api.importsD3D12 {
+                return (
+                    .wined3d,
+                    "Direct3D 12 title; D3DMetal isn't available, so Wine's vkd3d runs it over MoltenVK"
+                )
+            }
         }
         if let api, api.isLegacyDirect3DOnly, dxvkHasD3D9 {
             let name = api.primaryAPI?.displayName ?? "Legacy Direct3D"
@@ -172,8 +187,9 @@ public enum GraphicsBackendResolver {
     /// - Returns: A human-readable rationale string.
     public static func rationale(macOSVersion: MacOSVersion = .current) -> String {
         "Recommended prefers DXMT for Direct3D 10/11. Direct3D 12 titles go to D3DMetal when it's " +
-            "installed, launchers such as Steam go to DXVK, and so do Direct3D 9 titles when the runtime's " +
-            "DXVK includes d3d9. The choice is made per launch and recorded in the program's run history."
+            "installed, otherwise to WineD3D, where Wine's vkd3d runs them over MoltenVK. Launchers such as " +
+            "Steam go to DXVK, and so do Direct3D 9 titles when the runtime's DXVK includes d3d9. The choice " +
+            "is made per launch and recorded in the program's run history."
     }
 }
 
