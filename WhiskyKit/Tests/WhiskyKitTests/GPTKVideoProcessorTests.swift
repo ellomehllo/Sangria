@@ -241,7 +241,7 @@ struct GPTKVideoProcessorTests {
     func renamedNamesFitInPlace() {
         // The export name is patched in place, so a longer replacement would
         // run off the end of the string and corrupt whatever follows it.
-        for interposer in GPTKImporter.interposers {
+        for interposer in GPTKImporter.knownInterposers {
             #expect(
                 interposer.renamedName.utf8.count <= interposer.slotName.utf8.count,
                 "\(interposer.renamedName) cannot replace \(interposer.slotName) in place"
@@ -251,15 +251,15 @@ struct GPTKVideoProcessorTests {
 
     @Test("No two interposers claim the same slot or the same renamed DLL")
     func interposersDoNotCollide() {
-        let slots = GPTKImporter.interposers.map(\.slotName)
-        let renamed = GPTKImporter.interposers.map(\.renamedName)
+        let slots = GPTKImporter.knownInterposers.map(\.slotName)
+        let renamed = GPTKImporter.knownInterposers.map(\.renamedName)
         #expect(Set(slots).count == slots.count)
         #expect(Set(renamed).count == renamed.count)
         #expect(Set(slots).isDisjoint(with: renamed))
     }
 
-    @Test("Deploy installs the DXGI interposer with Apple's DXGI renamed beside it")
-    func deployInstallsDXGIInterposer() throws {
+    /// A runtime that ships both shims, with a store whose dxgi can be renamed.
+    private func makeRuntimeWithDXGIShim() throws -> (store: URL, runtime: URL) {
         let interposer = GPTKImporter.dxgiVersionInterposer
         let store = try makeImportedStore(in: tempDir)
         try makeStoreD3D12Renameable(inStore: store)
@@ -268,39 +268,58 @@ struct GPTKVideoProcessorTests {
         try makeRuntime(at: runtime)
         try makeVideoProcessorShim(at: runtime)
         try makeInterposerShim(interposer, at: runtime, marker: "dxgi interposer")
-
-        try GPTKImporter.deploy(fromStore: store, intoLibraryFolder: runtime)
-
-        #expect(GPTKImporter.isInstalled(interposer, inLibraryFolder: runtime))
-        // The fixture's name slot is sized for the longest slot name, so a
-        // shorter replacement leaves the old terminator behind it.
-        let renamed = peDir(of: runtime).appending(path: interposer.renamedName)
-        let actual = try exportName(of: renamed).trimmingCharacters(in: ["\0"])
-        #expect(actual == interposer.renamedName, "export name is \(actual)")
-
-        let link = runtime.appending(path: "Wine").appending(path: "lib").appending(path: "wine")
-            .appending(path: "x86_64-unix").appending(path: interposer.renamedUnixName)
-        let destination = try FileManager.default.destinationOfSymbolicLink(
-            atPath: link.path(percentEncoded: false)
-        )
-        #expect(destination == GPTKImporter.unixLinkDestination)
+        return (store, runtime)
     }
 
-    @Test("Removing takes every interposer back out, not just the first")
-    func removeClearsEverySlot() throws {
+    private func expectAppleDXGIInSlot(runtime: URL, store: URL) {
         let interposer = GPTKImporter.dxgiVersionInterposer
-        let store = try makeImportedStore(in: tempDir)
-        try makeStoreD3D12Renameable(inStore: store)
-        try makeStoreSlotRenameable(inStore: store, slotName: interposer.slotName)
-        let runtime = tempDir.appending(path: "Libraries")
-        try makeRuntime(at: runtime)
-        try makeVideoProcessorShim(at: runtime)
-        try makeInterposerShim(interposer, at: runtime, marker: "dxgi interposer")
+        #expect(!GPTKImporter.isInstalled(interposer, inLibraryFolder: runtime))
+        let slot = peDir(of: runtime).appending(path: interposer.slotName)
+        let apple = store.appending(path: "lib").appending(path: "wine").appending(path: "x86_64-windows")
+            .appending(path: interposer.slotName)
+        #expect(FileManager.default.contentsEqual(
+            atPath: slot.path(percentEncoded: false), andPath: apple.path(percentEncoded: false)
+        ))
+        let renamed = peDir(of: runtime).appending(path: interposer.renamedName)
+        #expect(!FileManager.default.fileExists(atPath: renamed.path(percentEncoded: false)))
+    }
+
+    @Test("Deploy leaves Apple's DXGI in its slot even when the runtime ships the DXGI shim")
+    func deployKeepsAppleDXGI() throws {
+        // The shim loads Apple's DXGI lazily, and D3D11 on D3DMetal and D3D12
+        // created before DXGI then jump to address 0.
+        #expect(!GPTKImporter.interposers.contains { $0.slotName == "dxgi.dll" })
+        let (store, runtime) = try makeRuntimeWithDXGIShim()
+
         try GPTKImporter.deploy(fromStore: store, intoLibraryFolder: runtime)
+
+        expectAppleDXGIInSlot(runtime: runtime, store: store)
+        #expect(GPTKImporter.isInstalled(GPTKImporter.videoProcessorInterposer, inLibraryFolder: runtime))
+    }
+
+    @Test("Redeploying takes out a DXGI shim an earlier deploy installed")
+    func redeployRemovesDXGIShim() throws {
+        let interposer = GPTKImporter.dxgiVersionInterposer
+        let (store, runtime) = try makeRuntimeWithDXGIShim()
+        try GPTKImporter.deploy(fromStore: store, intoLibraryFolder: runtime)
+        // What deploys before this change left behind.
+        try GPTKImporter.install(interposer, intoLibraryFolder: runtime)
+        #expect(GPTKImporter.isInstalled(interposer, inLibraryFolder: runtime))
+
+        try GPTKImporter.deploy(fromStore: store, intoLibraryFolder: runtime)
+
+        expectAppleDXGIInSlot(runtime: runtime, store: store)
+    }
+
+    @Test("Removing takes every known interposer back out, not just the first")
+    func removeClearsEverySlot() throws {
+        let (store, runtime) = try makeRuntimeWithDXGIShim()
+        try GPTKImporter.deploy(fromStore: store, intoLibraryFolder: runtime)
+        try GPTKImporter.install(GPTKImporter.dxgiVersionInterposer, intoLibraryFolder: runtime)
 
         GPTKImporter.removeVideoProcessor(fromLibraryFolder: runtime, usingStore: store)
 
-        for each in GPTKImporter.interposers {
+        for each in GPTKImporter.knownInterposers {
             #expect(!GPTKImporter.isInstalled(each, inLibraryFolder: runtime))
             let renamed = peDir(of: runtime).appending(path: each.renamedName)
             #expect(!FileManager.default.fileExists(atPath: renamed.path(percentEncoded: false)))

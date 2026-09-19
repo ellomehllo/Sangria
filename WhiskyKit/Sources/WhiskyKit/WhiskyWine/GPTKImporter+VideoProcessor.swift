@@ -77,8 +77,20 @@ extension GPTKImporter {
         label: "DXGI driver version"
     )
 
-    /// Every slot we interpose, in the order they are installed.
-    static let interposers = [videoProcessorInterposer, dxgiVersionInterposer]
+    /// Every slot we know how to interpose. Removal walks all of them, so a
+    /// tree an earlier deploy left the DXGI interposer in gets it taken out.
+    static let knownInterposers = [videoProcessorInterposer, dxgiVersionInterposer]
+
+    /// The interposers deploy installs, in order.
+    ///
+    /// Not the DXGI one. Its shim loads Apple's DXGI lazily, on the first DXGI
+    /// call, and Apple's D3D11 and D3D12 need it loaded already: with it in the
+    /// slot, every Direct3D 11 program on D3DMetal and every Direct3D 12 program
+    /// that creates its device before touching DXGI jumped to address 0 (GPTK
+    /// 4.0b2 on runtime v4.6.4-beta.1), and all of them ran with Apple's DXGI
+    /// in the slot instead. What it fixes is the driver version D3DMetal
+    /// reports (-1), which only Helldivers 2 is known to refuse.
+    static let interposers = [videoProcessorInterposer]
 
     static func shim(for interposer: GPTKInterposer, inLibraryFolder folder: URL) -> URL {
         folder.appending(path: "Wine").appending(path: "lib")
@@ -199,7 +211,7 @@ extension GPTKImporter {
     }
 
     static func removeVideoProcessor(fromLibraryFolder folder: URL, usingStore store: URL) {
-        for interposer in interposers {
+        for interposer in knownInterposers {
             remove(interposer, fromLibraryFolder: folder, usingStore: store)
         }
     }
