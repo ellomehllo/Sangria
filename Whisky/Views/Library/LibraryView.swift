@@ -143,6 +143,10 @@ struct LibraryView: View {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             }
             Button("library.card.unpin", role: .destructive) { unpin(url, in: row.item.bottleURL) }
+            if let program = bottles.first(where: { $0.url == row.item.bottleURL })?
+                .programs.first(where: { $0.url == url }) {
+                UseD3DMetalToggle(program: program)
+            }
         }
         // Per-program settings live inside the bottle's own navigation stack,
         // which the library cannot push onto, so this is as close as the menu

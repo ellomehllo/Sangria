@@ -124,6 +124,8 @@ struct ProgramView: View {
                         }
                     }
                 }
+                UseD3DMetalToggle(program: program)
+                    .toggleStyle(.checkbox)
                 Button("button.run") {
                     launchProgram()
                 }
