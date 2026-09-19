@@ -162,6 +162,18 @@ func run(_ args: [String]) async throws {
         overrides.graphicsBackend = raw == "inherit" ? nil : parseBackend(raw)
         program.settings.overrides = overrides
     }
+    // --win-version win7|win10|…|inherit: the per-program Windows version override
+    if let raw = option("--win-version", in: args) {
+        var overrides = program.settings.overrides ?? ProgramOverrides()
+        if raw == "inherit" {
+            overrides.windowsVersion = nil
+        } else if let version = WinVersion(rawValue: raw) {
+            overrides.windowsVersion = version
+        } else {
+            fail("unknown Windows version \(raw)")
+        }
+        program.settings.overrides = overrides
+    }
     var debug = program.settings.effectiveGraphicsDebug
     debug.metalAPIValidation = flag("--api-validation", in: args)
     debug.metalShaderValidation = flag("--shader-validation", in: args)
@@ -306,6 +318,13 @@ func main() async throws {
     case "bottle-path":
         guard let name = args.first else { fail("bottle-path BOTTLE") }
         print(bottle(named: name).url.path(percentEncoded: false))
+    case "deploy-gptk":
+        // What the app does when a capable engine is installed or the GPTK
+        // settings section appears: deploy the already-imported store, gated.
+        print("stored payload: \(GPTKImporter.storedRecord().map { "\($0)" } ?? "none")")
+        print("runtime GPTK-capable: \(GPTKImporter.isRuntimeGPTKCapable())")
+        print("deployed now: \(GPTKImporter.deployStoredPayloadIfCapable())")
+        print("deployed: \(GPTKImporter.isDeployed()), D3DMetal installed: \(WhiskyWineInstaller.isD3DMetalInstalled())")
     case "undeploy-gptk":
         try GPTKImporter.removeDeployedPayload()
         print("deployed: \(GPTKImporter.isDeployed()), D3DMetal installed: \(WhiskyWineInstaller.isD3DMetalInstalled())")

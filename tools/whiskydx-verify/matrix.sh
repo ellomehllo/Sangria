@@ -8,7 +8,7 @@ P="$($H bottle-path "$B")/drive_c/Probes"
 [ -d "$P" ] || { echo "copy probes/out/*.exe into $P first"; exit 1; }
 # Functional + benchmark matrix for the Whisky DX build, through the harness.
 BENCH="secs=10 iters=8192"
-KEEP='preview:|launched:|LAUNCH|verification:|run log:|system32/d3d11|system32/dxgi|system32/d3d9|avg_fps|status=|feature_level=|adapter=|create_device|compile_ps|capture|wine log:|log dxmt|log dxvk|MTL|Found config'
+KEEP='preview:|launched:|LAUNCH|verification:|run log:|system32/d3d11|system32/dxgi|system32/d3d9|avg_fps|status=|feature_level=|adapter=|create_device|compile_ps|capture|wine log:|log dxmt|log dxvk|MTL|Found config|pixels=|os_version='
 run() { echo "\n### $*"; $H run "$B" "$@" --wait 90 2>&1 | grep -E "$KEEP"; }
 
 echo "===== 1. DXMT bottle (default)"
@@ -27,10 +27,15 @@ echo "\n===== 3. Per-program override in a DXVK bottle: FL11 -> DXMT"
 run "$P/D3D11Probe-fl11_0.exe" --program-backend dxmt --args "secs=5 iters=8192"
 run "$P/D3D11Probe-fl11_0.exe" --program-backend inherit --args "secs=3"
 
-echo "\n===== 4. Recommended bottle: D3D9 -> DXVK, D3D11 -> DXMT"
+echo "\n===== 4. Recommended bottle: D3D9 -> DXVK, D3D11 -> DXMT, D3D12 -> D3DMetal or WineD3D (vkd3d)"
 $H set-backend "$B" recommended
 run "$P/D3D9Probe.exe" --args "secs=4"
 run "$P/D3D11Probe-fl11_0.exe" --args "secs=4"
+run "$P/D3D12Probe.exe" --args "secs=4"
+
+echo "\n===== 4b. Per-program Windows version: win7, then cleared"
+run "$P/D3D12Probe.exe" --program-backend recommended --win-version win7 --args "secs=2 iters=256"
+run "$P/D3D12Probe.exe" --program-backend inherit --win-version inherit --args "secs=2 iters=256"
 
 echo "\n===== 5. Frame capture on DXMT (automatic, frame 30)"
 $H set-backend "$B" dxmt
