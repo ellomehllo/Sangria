@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Whisky DX</string>
+	<string>Sangria</string>
 	<key>CFBundleName</key>
-	<string>Whisky DX</string>
+	<string>Sangria</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

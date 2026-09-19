@@ -6,7 +6,7 @@ excluded:
   - .build
   - WhiskyKit/.build
   - build
-  # Headless verification harness for the Whisky DX build: a dev tool, not app code.
+  # Headless verification harness for Sangria: a dev tool, not app code.
   - tools/whiskydx-verify
 
 file_header:

@@ -230,12 +230,12 @@ struct WhiskyApp: App {
             }
             CommandGroup(replacing: .help) {
                 Button("help.github") {
-                    if let url = URL(string: "https://github.com/frankea/Whisky") {
+                    if let url = URL(string: "https://github.com/ellomehllo/Sangria") {
                         openURL(url)
                     }
                 }
                 Button("help.issues") {
-                    if let url = URL(string: "https://github.com/frankea/Whisky/issues") {
+                    if let url = URL(string: "https://github.com/ellomehllo/Sangria/issues") {
                         openURL(url)
                     }
                 }
@@ -257,7 +257,7 @@ struct WhiskyApp: App {
         Settings {
             SettingsView()
         }
-        MenuBarExtra("Whisky", systemImage: "wineglass", isInserted: $showMenuBarExtra) {
+        MenuBarExtra("Sangria", systemImage: "wineglass", isInserted: $showMenuBarExtra) {
             WhiskyMenuBarView()
                 .environmentObject(BottleVM.shared)
         }

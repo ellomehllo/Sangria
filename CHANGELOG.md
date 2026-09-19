@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Whisky DX (personal build)
+### Sangria (personal build, formerly "Whisky DX")
 
 Changes made in this personal fork. See [docs/WhiskyDX.md](docs/WhiskyDX.md).
 
@@ -49,9 +49,12 @@ Changes made in this personal fork. See [docs/WhiskyDX.md](docs/WhiskyDX.md).
   project builds and runs from Xcode or `xcodebuild` without upstream's team.
   With a local identity the hardened runtime's library validation refused the
   Debug build's `Whisky.debug.dylib` and the app aborted at launch.
-- Personal bundle identifier (`local.bluevsh.WhiskyDX`), display name
-  "Whisky DX", Sparkle updates off and no telemetry token, so this build never
-  shares data with, reports to, or is updated over by upstream Whisky.
+- Renamed to Sangria (repository, app name, menu bar item, Help links). The
+  internal bundle identifier stays `local.bluevsh.WhiskyDX` so the installed
+  runtime, bottles and compatibility notes carry over.
+- Personal bundle identifier (`local.bluevsh.WhiskyDX`), Sparkle updates off
+  and no telemetry token, so this build never shares data with, reports to, or
+  is updated over by upstream Whisky.
 
 ### Fixed
 - The Recommended graphics backend now resolves launchers (Steam and other
