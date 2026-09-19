@@ -21,11 +21,26 @@ import SemanticVersion
 import XCTest
 
 final class GraphicsBackendResolverTests: XCTestCase {
-    func testResolvesD3DMetalWhenPayloadInstalled() {
+    /// This build prefers DXMT: with both payloads installed, Recommended
+    /// resolves to DXMT for a program with no Direct3D 12 evidence.
+    func testPrefersDXMTOverD3DMetalWhenBothInstalled() {
         let runtime = WhiskyWineVersion(version: SemanticVersion(3, 1, 1), dxmtVersion: "0.80")
 
         XCTAssertEqual(
-            GraphicsBackendResolver.resolve(runtimeInfo: runtime, d3dMetalInstalled: true),
+            GraphicsBackendResolver.resolve(
+                runtimeInfo: runtime, d3dMetalInstalled: true, dxmtRuntimeNative: true
+            ),
+            .dxmt
+        )
+    }
+
+    func testResolvesD3DMetalWhenDXMTUnavailable() {
+        let runtime = WhiskyWineVersion(version: SemanticVersion(3, 1, 1), dxmtVersion: "0.80")
+
+        XCTAssertEqual(
+            GraphicsBackendResolver.resolve(
+                runtimeInfo: runtime, d3dMetalInstalled: true, dxmtRuntimeNative: false
+            ),
             .d3dMetal
         )
     }

@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Whisky DX (personal build)
+
+Changes made in this personal fork. See [docs/WhiskyDX.md](docs/WhiskyDX.md).
+
+#### Added
+- DXMT is the default backend. New bottles are created on DXMT when the
+  runtime carries a usable DXMT payload, and Recommended now prefers DXMT for
+  Direct3D 10/11, sends Direct3D 12 titles to D3DMetal when it is installed,
+  and sends launchers to DXVK.
+- Per-bottle DXMT settings written to a generated `dxmt.conf` on every DXMT
+  launch: frame rate limit, MetalFX spatial upscaling and factor, and free-form
+  extra options, with a live preview of the file.
+- Graphics section on each program: the API its imports reveal, the backend
+  the next launch will use and why, and the backend the last run used,
+  checked against which translation layer actually wrote logs.
+- Graphics Debug section on each program: DXMT/DXVK log viewer (per-program
+  log directories), Metal API and shader validation toggles, DXMT log level,
+  DXMT frame capture (F10 or automatic at frame N) with a list of captures,
+  and FPS measurement through the Metal HUD log.
+- The graphics API check: Direct3D 12 on DXMT, DXVK or WineD3D is refused
+  before launch with a message naming D3DMetal, instead of a crash or a black
+  window. Direct3D 9 gets an explanation of where it will actually render.
+- Compatibility Notes: a local database of test results (title, backend,
+  status, FPS, notes, date) in its own window (Shift-Cmd-C) and on each
+  program page, exportable as CSV.
+- The run history records each run's backend and why it was chosen.
+
+#### Fixed
+- Run logs no longer lose the program's output. Every launch also runs
+  `wine reg import` for DLL overrides within the same second, and the second
+  log file replaced the first under the program's open handle.
+- Switching a bottle from DXMT to DXVK no longer breaks Direct3D 11. The DXMT
+  `dxgi.dll` left in the prefix is now replaced with Wine's builtin copy
+  instead of deleted, which left DXVK's `d3d11.dll` unable to load.
+- The PE optional header parser read PE32+ stack and heap sizes as 4 bytes,
+  so `NumberOfRvaAndSizes` came from the wrong offset on 64-bit executables.
+
+#### Changed
+- Local signing: no team, ad-hoc identity, hardened runtime off, so the
+  project builds and runs from Xcode or `xcodebuild` without upstream's team.
+  With a local identity the hardened runtime's library validation refused the
+  Debug build's `Whisky.debug.dylib` and the app aborted at launch.
+- Personal bundle identifier (`local.bluevsh.WhiskyDX`), display name
+  "Whisky DX", Sparkle updates off and no telemetry token, so this build never
+  shares data with, reports to, or is updated over by upstream Whisky.
+
 ### Fixed
 - The Recommended graphics backend now resolves launchers (Steam and other
   Chromium-based clients) to DXVK on every runtime. Previously a runtime

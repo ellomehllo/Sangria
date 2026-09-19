@@ -232,6 +232,11 @@ public class Wine {
         /// Use this to correlate the run result with the run log history
         /// entry, e.g., to open the correct log entry in the console UI.
         public let runLogEntryId: UUID
+        /// The backend the launch used and why.
+        public let backendDecision: BackendDecision
+        /// What the executable's imports said about its graphics API, if it
+        /// is a readable PE image.
+        public let apiProfile: GraphicsAPIProfile?
     }
 
     // swiftlint:disable function_body_length
@@ -241,7 +246,9 @@ public class Wine {
         at url: URL, args: [String] = [], bottle: Bottle, environment: [String: String] = [:],
         programOverrides: ProgramOverrides? = nil, programSettings: ProgramSettings? = nil,
         gameProfileEnvironment: [String: String] = [:],
-        overridesApplyToDescendants: Bool = false
+        overridesApplyToDescendants: Bool = false,
+        frameCapture: FrameCaptureRequest? = nil,
+        skipGraphicsAPICheck: Bool = false
     ) async throws -> ProgramRunResult {
         // Note: Launcher detection and fix application happen before this method
         // is called, via LauncherFixes.detectAndApply from the app's run paths
@@ -253,10 +260,25 @@ public class Wine {
         // the matching WINEDLLOVERRIDES come from the environment layers.
         // `.recommended` resolves against what is being launched, not just the
         // machine.
-        let effectiveBackendChoice = programOverrides?.graphicsBackend ?? bottle.settings.graphicsBackend
-        let effectiveBackend = effectiveBackendChoice == .recommended
-            ? GraphicsBackendResolver.resolve(for: LauncherType.detect(from: url))
-            : effectiveBackendChoice
+        // The import tables also steer `.recommended` (Direct3D 12 to D3DMetal,
+        // Direct3D 9 to a DXVK that ships d3d9) and feed the API check below. The UI shows the
+        // same preview, so what it says is what this launch does.
+        let graphics = previewGraphics(
+            for: url,
+            bottleBackend: bottle.settings.graphicsBackend,
+            programBackend: programOverrides?.graphicsBackend
+        )
+        let apiProfile = graphics.profile
+        let backendDecision = graphics.decision
+        let effectiveBackendChoice = backendDecision.choice
+        let effectiveBackend = backendDecision.backend
+
+        // Refuse a pairing that cannot render (Direct3D 12 on DXMT) with a
+        // message that names the way out, instead of launching into a crash
+        // or a black window. The user can wave it through per program.
+        if !skipGraphicsAPICheck, programSettings?.allowUnsupportedGraphicsAPI != true {
+            try checkGraphicsAPI(graphics)
+        }
 
         // The bottle composes its overrides from its own resolution, which does
         // not know what is being launched, so pin the decision here or a
@@ -303,14 +325,26 @@ public class Wine {
             }
         }
 
+        // Per-program graphics debugging. The log directories must exist
+        // before launch: DXMT and DXVK do not create them.
+        let graphicsDebug = programSettings?.effectiveGraphicsDebug ?? ProgramGraphicsDebugSettings()
+        let debugEnvironment = GraphicsDebugEnvironment.variables(
+            settings: graphicsDebug, capture: frameCapture, programURL: url, bottleURL: bottle.url
+        )
+        for directory in debugEnvironment.directoriesToCreate {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+
         // Build the Wine environment with program overrides flowing through the programUser layer
         let (fileHandle, logFileURL) = try makeFileHandleWithURL()
         fileHandle.writeApplicationInfo()
         fileHandle.writeInfo(for: bottle)
+        fileHandle.writeGraphicsInfo(decision: backendDecision, apiProfile: apiProfile)
 
         var wineEnvironment = constructWineEnvironment(
             for: bottle, environment: environment, programOverrides: programOverrides,
-            programSettings: programSettings, gameProfileEnvironment: gameProfileEnvironment
+            programSettings: programSettings, gameProfileEnvironment: gameProfileEnvironment,
+            graphicsDebugVariables: debugEnvironment.variables
         )
 
         try await applyDLLOverrides(
@@ -327,6 +361,15 @@ public class Wine {
         if wineEnvironment.keys.contains("WINEDEBUG") {
             runLogEntry.activeWineDebugPreset = programSettings?.activeWineDebugPreset?.rawValue
         }
+
+        // Record what the run actually launched with, so the history never
+        // has to be reconstructed from settings that may have changed since.
+        runLogEntry.graphicsBackendName = effectiveBackend.rawValue
+        runLogEntry.graphicsBackendChoiceName = effectiveBackendChoice.rawValue
+        runLogEntry.graphicsBackendReason = backendDecision.reason
+        runLogEntry.graphicsLoggingEnabled = graphicsDebug.writeGraphicsLogs
+        runLogEntry.frameCaptureArmed = frameCapture != nil
+        runLogEntry.frameRateMeasured = graphicsDebug.measureFrameRate
 
         // Persist the "running" state immediately
         var runLogHistory = RunLogStore.load(for: programName, in: bottle.url)
@@ -379,10 +422,50 @@ public class Wine {
         )
         RunLogStore.save(updatedHistory, for: programName, in: bottle.url)
 
-        return ProgramRunResult(exitCode: exitCode, logFileURL: logFileURL, runLogEntryId: runLogEntry.id)
+        return ProgramRunResult(
+            exitCode: exitCode, logFileURL: logFileURL, runLogEntryId: runLogEntry.id,
+            backendDecision: backendDecision, apiProfile: apiProfile
+        )
     }
 
     // swiftlint:enable function_body_length
+
+    /// Which backend launching `url` would use, why, what the executable says
+    /// about its graphics API, and whether the two fit.
+    ///
+    /// `runProgram` decides with this, and the UI previews with it, so the two
+    /// cannot disagree.
+    public static func previewGraphics(
+        for url: URL,
+        bottleBackend: GraphicsBackend,
+        programBackend: GraphicsBackend?,
+        d3dMetalAvailable: Bool = WhiskyWineInstaller.isD3DMetalInstalled(),
+        dxvkHasD3D9: Bool = Wine.dxvkProvidesD3D9()
+    ) -> GraphicsLaunchPreview {
+        let profile = GraphicsAPIProfile.detect(executableURL: url)
+        let decision = GraphicsBackendResolver.decide(
+            bottleChoice: bottleBackend,
+            programChoice: programBackend,
+            launcher: LauncherType.detect(from: url),
+            api: profile
+        )
+        let assessment = profile.map {
+            BackendAPIAssessment.assess(
+                backend: decision.backend, profile: $0,
+                d3dMetalAvailable: d3dMetalAvailable, dxvkHasD3D9: dxvkHasD3D9
+            )
+        } ?? .compatible
+        return GraphicsLaunchPreview(decision: decision, profile: profile, assessment: assessment)
+    }
+
+    /// Throws ``GraphicsAPICompatibilityError`` when the backend cannot render
+    /// the program's graphics API, for example Direct3D 12 on DXMT.
+    static func checkGraphicsAPI(_ preview: GraphicsLaunchPreview) throws {
+        guard let profile = preview.profile, preview.assessment.isUnsupported else { return }
+        throw GraphicsAPICompatibilityError(
+            backend: preview.decision.backend, assessment: preview.assessment, profile: profile
+        )
+    }
 
     /// Resolves the virtual desktop resolution string from per-program overrides.
     ///
@@ -696,6 +779,17 @@ public class Wine {
         removeStaleNativeDXGI(prefixRoot: bottle.url)
     }
 
+    /// Whether the runtime's DXVK payload translates Direct3D 9.
+    ///
+    /// DXVK-macOS 1.10.3 as bundled in runtime 3.1.1 ships only `d3d11` and
+    /// `d3d10core`, so a Direct3D 9 program renders through WineD3D under
+    /// DXVK too, and the policy must not promise otherwise.
+    public static func dxvkProvidesD3D9() -> Bool {
+        FileManager.default.fileExists(
+            atPath: dxvkFolder.appending(path: "x64").appending(path: "d3d9.dll").path(percentEncoded: false)
+        )
+    }
+
     /// Removes a stale native `dxgi.dll` that a DXMT deploy left in the prefix.
     ///
     /// DXVK-macOS ships no `dxgi.dll`, so ``enableDXVK(bottle:)`` never
@@ -712,14 +806,23 @@ public class Wine {
     /// forwarder and the prefix needs a clean native copy instead, which is
     /// its own change. A builtin-marked file is never touched: that is wine's
     /// own fake DLL, exactly what DXVK expects to defer to.
+    ///
+    /// The leftover is replaced with the runtime's builtin copy, the file
+    /// wineboot put there before DXMT overwrote it. Deleting it alone left
+    /// the `,b` half with nothing to find on this runtime: DXVK's `d3d11.dll`
+    /// then failed its `dxgi.dll` import and every Direct3D 11 program failed
+    /// to start after a bottle had ever launched on DXMT. Deletion remains
+    /// the fallback when the runtime copy is missing.
     static func removeStaleNativeDXGI(
         prefixRoot: URL,
         gptkOriginalsDXGI: URL = GPTKImporter.storeFolder
-            .appending(path: "originals").appending(path: "dxgi.dll")
+            .appending(path: "originals").appending(path: "dxgi.dll"),
+        builtinRoot: URL = WhiskyWineInstaller.libraryFolder
+            .appending(path: "Wine").appending(path: "lib").appending(path: "wine")
     ) {
         let fileManager = FileManager.default
         guard !fileManager.fileExists(atPath: gptkOriginalsDXGI.path(percentEncoded: false)) else { return }
-        for dir in ["system32", "syswow64"] {
+        for (dir, arch) in [("system32", "x86_64-windows"), ("syswow64", "i386-windows")] {
             let dxgi = prefixRoot.appending(path: "drive_c").appending(path: "windows")
                 .appending(path: dir).appending(path: "dxgi.dll")
             guard fileManager.fileExists(atPath: dxgi.path(percentEncoded: false)),
@@ -727,6 +830,12 @@ public class Wine {
             else { continue }
             do {
                 try fileManager.removeItem(at: dxgi)
+                let builtin = builtinRoot.appending(path: arch).appending(path: "dxgi.dll")
+                if fileManager.fileExists(atPath: builtin.path(percentEncoded: false)) {
+                    try fileManager.copyItem(at: builtin, to: dxgi)
+                    Logger.wineKit.info("Restored builtin dxgi.dll in \(dir, privacy: .public)")
+                    continue
+                }
                 Logger.wineKit.info("Removed stale native dxgi.dll from \(dir, privacy: .public)")
             } catch {
                 Logger.wineKit.warning(
@@ -812,6 +921,16 @@ public class Wine {
         switch backend {
         case .dxmt:
             try enableDXMT(bottle: bottle)
+            // Regenerated every DXMT launch so the file always matches the
+            // bottle's settings. A failed write only loses the tuning, so it
+            // is logged rather than allowed to block the launch.
+            do {
+                try DXMTConfiguration.write(settings: bottle.settings, bottleURL: bottle.url)
+            } catch {
+                Logger.wineKit.error(
+                    "Failed to write dxmt.conf: \(error.localizedDescription, privacy: .public)"
+                )
+            }
         case .d3dMetal, .dxvk, .wined3d, .recommended:
             break
         }
@@ -1136,10 +1255,32 @@ public extension Wine {
         // This is best-effort and only impacts Whisky's own log directory.
         enforceLogRetention(in: logsFolder, maxTotalBytes: maxLogsFolderBytes)
 
-        let dateString = Date.now.ISO8601Format()
-        let fileURL = Self.logsFolder.appending(path: dateString).appendingPathExtension("log")
-        try "".write(to: fileURL, atomically: true, encoding: .utf8)
+        let fileURL = try createUniqueLogFile(in: logsFolder, baseName: Date.now.ISO8601Format())
         return try (FileHandle(forWritingTo: fileURL), fileURL)
+    }
+
+    /// Creates `<baseName>.log`, or `<baseName>-2.log` and so on when taken,
+    /// with an exclusive create so no two runs ever share a file.
+    ///
+    /// Names are second-resolution timestamps, and every program launch also
+    /// runs `wine reg import` for its DLL overrides within the same second.
+    /// Recreating the name atomically swapped a fresh file in under the
+    /// program's open handle, so the program's own output went to an unlinked
+    /// file and the run's log on disk was the import's instead.
+    static func createUniqueLogFile(in folder: URL, baseName: String) throws -> URL {
+        for attempt in 1 ... 1_000 {
+            let name = attempt == 1 ? baseName : "\(baseName)-\(attempt)"
+            let url = folder.appending(path: name).appendingPathExtension("log")
+            let descriptor = open(url.path(percentEncoded: false), O_WRONLY | O_CREAT | O_EXCL, 0o644)
+            if descriptor >= 0 {
+                close(descriptor)
+                return url
+            }
+            guard errno == EEXIST else {
+                throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: url.path(percentEncoded: false)])
+            }
+        }
+        throw CocoaError(.fileWriteFileExists)
     }
 
     /// Classifies the output from a Wine process run for crash patterns.

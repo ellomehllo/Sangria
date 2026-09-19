@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		44D747D208FACFF9B9C150AD /* ProgramCompatibilityNotesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1EF64110A2F4F1E3DE0492 /* ProgramCompatibilityNotesSection.swift */; };
+		C5134E20701F9B76EF464F93 /* CompatibilityNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46564E22875712C70E8EDF6A /* CompatibilityNotesView.swift */; };
+		69B2F46317BFACA1A1ACA89F /* CompatibilityNoteEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB3F06350B2F04F51A7F307 /* CompatibilityNoteEditor.swift */; };
+		3AEC5DAE4D7992E122F56CB2 /* CompatibilityNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72C926A10ACDF2170660AF9 /* CompatibilityNotesStore.swift */; };
+		C1A8D3503A5FD171AB6FCD78 /* ProgramGraphicsDebugSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FE4A6D6AB05AD8394056DFE /* ProgramGraphicsDebugSection.swift */; };
+		3822ECB9912B0BFCA1AC72F8 /* ProgramGraphicsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350B74C87ADA8C45429296A /* ProgramGraphicsSection.swift */; };
+		D8FECA754748307BB596DD89 /* DXMTSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF804B2E6954530A8ED2813 /* DXMTSettingsView.swift */; };
 		12DEDCF97DB77E9F6714B8F1 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 61747C7BF48347DA75C30397 /* Cocoa.framework */; };
 		160B41C4006351293AAEEF27 /* LauncherConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27C1F7764AE4F0AED2FD03D /* LauncherConfigSection.swift */; };
 		1A2B3C4D2E0107F000AABBCC /* TextTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4E2E0107F000AABBCC /* TextTable.swift */; };
@@ -204,6 +211,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3A1EF64110A2F4F1E3DE0492 /* ProgramCompatibilityNotesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramCompatibilityNotesSection.swift; sourceTree = "<group>"; };
+		46564E22875712C70E8EDF6A /* CompatibilityNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityNotesView.swift; sourceTree = "<group>"; };
+		2BB3F06350B2F04F51A7F307 /* CompatibilityNoteEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityNoteEditor.swift; sourceTree = "<group>"; };
+		A72C926A10ACDF2170660AF9 /* CompatibilityNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityNotesStore.swift; sourceTree = "<group>"; };
+		7FE4A6D6AB05AD8394056DFE /* ProgramGraphicsDebugSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramGraphicsDebugSection.swift; sourceTree = "<group>"; };
+		6350B74C87ADA8C45429296A /* ProgramGraphicsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramGraphicsSection.swift; sourceTree = "<group>"; };
+		2FF804B2E6954530A8ED2813 /* DXMTSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DXMTSettingsView.swift; sourceTree = "<group>"; };
 		000C327847E981AEF33EFB61 /* InputConfigSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InputConfigSection.swift; sourceTree = "<group>"; };
 		1A2B3C4E2E0107F000AABBCC /* TextTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTable.swift; sourceTree = "<group>"; };
 		1C3B8A506869998F3FE0FC74 /* WhiskyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhiskyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -389,6 +403,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		22134088203BA15CD96CFFBD /* Compatibility */ = {
+			isa = PBXGroup;
+			children = (
+				3A1EF64110A2F4F1E3DE0492 /* ProgramCompatibilityNotesSection.swift */,
+				46564E22875712C70E8EDF6A /* CompatibilityNotesView.swift */,
+				2BB3F06350B2F04F51A7F307 /* CompatibilityNoteEditor.swift */,
+				A72C926A10ACDF2170660AF9 /* CompatibilityNotesStore.swift */,
+			);
+			path = Compatibility;
+			sourceTree = "<group>";
+		};
 		6365C4BF2B1AA69500AAE1FD /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
@@ -422,6 +447,8 @@
 		6E17B6472AF3FE2E00831173 /* Programs */ = {
 			isa = PBXGroup;
 			children = (
+				7FE4A6D6AB05AD8394056DFE /* ProgramGraphicsDebugSection.swift */,
+				6350B74C87ADA8C45429296A /* ProgramGraphicsSection.swift */,
 				6E355E5929D782B2002D83BE /* ProgramsView.swift */,
 				6E355E5D29D7D85D002D83BE /* ProgramView.swift */,
 				6E17B6482AF4118F00831173 /* EnvironmentArgView.swift */,
@@ -454,6 +481,7 @@
 		6E355E5629D78202002D83BE /* Bottle */ = {
 			isa = PBXGroup;
 			children = (
+				2FF804B2E6954530A8ED2813 /* DXMTSettingsView.swift */,
 				C1A2B3C4E5F60601A9B0C1D9 /* AudioConfigSection.swift */,
 				C1A2B3C4E5F60601A9B0F2D9 /* LibraryView.swift */,
 				C1A2B3C4E5F60601A9B0F1D9 /* LibraryCard.swift */,
@@ -550,6 +578,7 @@
 		6E5197CD29D71FCD00CF655E /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				22134088203BA15CD96CFFBD /* Compatibility */,
 				C1A2B3C4E5F60601A9B0C1DA /* Audio */,
 				63FFDE822ADEFADF00178665 /* Common */,
 				D1A2B3C4E5F60504A9B0C1D6 /* Diagnostics */,
@@ -974,6 +1003,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8FECA754748307BB596DD89 /* DXMTSettingsView.swift in Sources */,
+				3822ECB9912B0BFCA1AC72F8 /* ProgramGraphicsSection.swift in Sources */,
+				C1A8D3503A5FD171AB6FCD78 /* ProgramGraphicsDebugSection.swift in Sources */,
+				3AEC5DAE4D7992E122F56CB2 /* CompatibilityNotesStore.swift in Sources */,
+				69B2F46317BFACA1A1ACA89F /* CompatibilityNoteEditor.swift in Sources */,
+				C5134E20701F9B76EF464F93 /* CompatibilityNotesView.swift in Sources */,
+				44D747D208FACFF9B9C150AD /* ProgramCompatibilityNotesSection.swift in Sources */,
 				EEA5A2462A31DD65008274AE /* AppDelegate.swift in Sources */,
 				6763D8F62BC6314100651D27 /* Constants.swift in Sources */,
 				7A0510A52F5A000000000005 /* Telemetry.swift in Sources */,
@@ -1252,14 +1288,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Whisky/Whisky.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 55;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Whisky/Preview Content\"";
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Whisky/Info.plist;
@@ -1274,7 +1310,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.7.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.Whisky;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1290,14 +1326,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Whisky/Whisky.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 55;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Whisky/Preview Content\"";
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Whisky/Info.plist;
@@ -1312,7 +1348,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.7.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.Whisky;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1326,18 +1362,18 @@
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_PKGINFO_FILE = NO;
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.WhiskyCmd;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.WhiskyCmd;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1352,18 +1388,18 @@
 			buildSettings = {
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_PKGINFO_FILE = NO;
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.WhiskyCmd;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.WhiskyCmd;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1377,12 +1413,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = WhiskyThumbnail/WhiskyThumbnail.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 55;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1396,7 +1432,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 3.7.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.Whisky.WhiskyThumbnail;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.WhiskyThumbnail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1412,12 +1448,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = WhiskyThumbnail/WhiskyThumbnail.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 55;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Z7JS58F8U3;
-				ENABLE_HARDENED_RUNTIME = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1431,7 +1467,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 3.7.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.Whisky.WhiskyThumbnail;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.WhiskyThumbnail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1444,11 +1480,11 @@
 		EC7088CF22CF6A8529158E5E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhiskyUITests/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.WhiskyUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -1459,11 +1495,11 @@
 		ED4162A74330FA06C2F299B6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhiskyUITests/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franke.WhiskyUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;

@@ -130,14 +130,24 @@ extension PEFile {
             offset += 2
             self.dllCharacteristics = handle.extract(UInt16.self, offset: offset) ?? 0
             offset += 2
-            self.sizeOfStackReserve = handle.extract(UInt32.self, offset: offset) ?? 0
-            offset += 4
-            self.sizeOfStackCommit = handle.extract(UInt32.self, offset: offset) ?? 0
-            offset += 4
-            self.sizeOfHeapReserve = handle.extract(UInt32.self, offset: offset) ?? 0
-            offset += 4
-            self.sizeOfHeapCommit = handle.extract(UInt32.self, offset: offset) ?? 0
-            offset += 4
+            // PE32+ widens these four to 8 bytes. Reading them as 4 in both
+            // formats put LoaderFlags and NumberOfRvaAndSizes 16 bytes early
+            // for every 64-bit image. The stored fields stay 32-bit; the
+            // reserve and commit sizes of a real image fit.
+            let sizeFieldWidth: UInt64 = magic == .pe32Plus ? 8 : 4
+            var sizeFields: [UInt32] = []
+            for _ in 0 ..< 4 {
+                if sizeFieldWidth == 8 {
+                    sizeFields.append(UInt32(truncatingIfNeeded: handle.extract(UInt64.self, offset: offset) ?? 0))
+                } else {
+                    sizeFields.append(handle.extract(UInt32.self, offset: offset) ?? 0)
+                }
+                offset += sizeFieldWidth
+            }
+            self.sizeOfStackReserve = sizeFields[0]
+            self.sizeOfStackCommit = sizeFields[1]
+            self.sizeOfHeapReserve = sizeFields[2]
+            self.sizeOfHeapCommit = sizeFields[3]
             self.loaderFlags = handle.extract(UInt32.self, offset: offset) ?? 0
             offset += 4
             self.numberOfRvaAndSizes = handle.extract(UInt32.self, offset: offset) ?? 0

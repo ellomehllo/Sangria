@@ -191,7 +191,8 @@ private struct BackendCard: View {
         case .dxvk:
             (String(localized: "config.graphics.tag.compatible"), .blue)
         case .dxmt:
-            (String(localized: "config.graphics.tag.experimental"), .purple)
+            // This build's default backend, not an experiment.
+            ("Default", .purple)
         case .wined3d:
             (String(localized: "config.graphics.tag.fallback"), .orange)
         }

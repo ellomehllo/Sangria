@@ -83,12 +83,20 @@ public extension Program {
     }
 
     /// Launches the program respecting user's modifier key preference and returns the result.
-    /// - Parameter useTerminal: Whether to launch in Terminal mode (e.g., Shift was held).
-    ///   **Important:** Capture `NSEvent.modifierFlags.contains(.shift)` synchronously at the call site,
-    ///   before entering any async context, to avoid race conditions with key state.
+    /// - Parameters:
+    ///   - useTerminal: Whether to launch in Terminal mode (e.g., Shift was held).
+    ///     **Important:** Capture `NSEvent.modifierFlags.contains(.shift)` synchronously at the call site,
+    ///     before entering any async context, to avoid race conditions with key state.
+    ///   - frameCapture: Arms DXMT's Metal frame capture for this launch.
+    ///   - skipGraphicsAPICheck: Launches even when the graphics API check
+    ///     would refuse the backend, after the user chose "Launch Anyway".
     /// - Returns: LaunchResult indicating success, terminal launch, or failure
     @MainActor
-    func launchWithUserMode(useTerminal: Bool) async -> LaunchResult {
+    func launchWithUserMode(
+        useTerminal: Bool,
+        frameCapture: FrameCaptureRequest? = nil,
+        skipGraphicsAPICheck: Bool = false
+    ) async -> LaunchResult {
         // Check for terminal mode (typically shift-click)
         if useTerminal {
             self.runInTerminal()
@@ -104,11 +112,13 @@ public extension Program {
         do {
             let result = try await Wine.runProgram(
                 at: self.url, args: arguments, bottle: self.bottle, environment: environment,
-                programOverrides: settings.overrides, programSettings: settings
+                programOverrides: settings.overrides, programSettings: settings,
+                frameCapture: frameCapture, skipGraphicsAPICheck: skipGraphicsAPICheck
             )
 
             // Track the log file URL for diagnostics
             settings.lastLogFileURL = result.logFileURL
+            lastBackendDecision = result.backendDecision
 
             // The exit code and the log this instant belong to the `start
             // /unix` stub, which returns seconds after launch, so this check

@@ -178,6 +178,10 @@ final class BottleVM: ObservableObject {
             // Configure bottle settings (all on MainActor)
             createdBottle.settings.windowsVersion = request.winVersion
             createdBottle.settings.name = request.bottleName
+            // DXMT is this build's default backend. It is set explicitly, not
+            // left on Recommended, so the picker shows what the bottle runs;
+            // a runtime without a usable DXMT payload keeps Recommended.
+            createdBottle.settings.graphicsBackend = GraphicsBackendResolver.defaultForNewBottle()
 
             // Wine operations are async and can run on background threads
             try await Wine.changeWinVersion(bottle: createdBottle, win: request.winVersion)

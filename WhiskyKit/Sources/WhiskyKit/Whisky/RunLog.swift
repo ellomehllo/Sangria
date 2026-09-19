@@ -50,6 +50,39 @@ public struct RunLogEntry: Codable, Identifiable, Equatable, Sendable {
     /// Whether WINEDEBUG output was captured during this run.
     public var hasWineDebugOutput: Bool = false
 
+    /// Raw value of the concrete ``GraphicsBackend`` this run launched with.
+    ///
+    /// Stored as a string so a history written by a build with more backends
+    /// still loads; read it through ``graphicsBackend``.
+    public var graphicsBackendName: String?
+
+    /// Raw value of the backend as configured, which may be `recommended`.
+    public var graphicsBackendChoiceName: String?
+
+    /// Why the backend was chosen ("Bottle setting", the Recommended reason, ...).
+    public var graphicsBackendReason: String?
+
+    /// Whether DXMT/DXVK were told to write per-program logs for this run,
+    /// which is what makes ``GraphicsLogInspector`` verification possible.
+    public var graphicsLoggingEnabled: Bool?
+
+    /// Whether Metal frame capture was armed for this run.
+    public var frameCaptureArmed: Bool?
+
+    /// Whether the Metal HUD logged frame counts for this run, so its log
+    /// can yield a ``FrameRateMeasurement``.
+    public var frameRateMeasured: Bool?
+
+    /// The concrete backend this run launched with, if recorded.
+    public var graphicsBackend: GraphicsBackend? {
+        graphicsBackendName.flatMap(GraphicsBackend.init(rawValue:))
+    }
+
+    /// The configured backend choice, if recorded.
+    public var graphicsBackendChoice: GraphicsBackend? {
+        graphicsBackendChoiceName.flatMap(GraphicsBackend.init(rawValue:))
+    }
+
     /// Whether the program is still running (no end time recorded yet).
     public var isRunning: Bool {
         endTime == nil

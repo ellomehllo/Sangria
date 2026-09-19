@@ -102,6 +102,8 @@ struct ConsoleRunHistoryView: View {
 
                     Spacer()
 
+                    RunBackendBadge(entry: entry)
+
                     if entry.isRunning {
                         runningBadge
                     } else {
@@ -153,6 +155,8 @@ struct ConsoleRunHistoryView: View {
                             + Text(entry.startTime, style: .time)
 
                         Spacer()
+
+                        RunBackendBadge(entry: entry)
 
                         if entry.isRunning {
                             runningBadge
@@ -342,5 +346,18 @@ private struct PulseAnimationModifier: ViewModifier {
                 value: isPulsing
             )
             .onAppear { isPulsing = true }
+    }
+}
+
+/// The backend a run launched with, from its run log entry. Empty for runs
+/// recorded before backend tracking.
+private struct RunBackendBadge: View {
+    let entry: RunLogEntry
+
+    var body: some View {
+        if let backend = entry.graphicsBackend {
+            BackendBadge(backend: backend)
+                .help(entry.graphicsBackendReason ?? "")
+        }
     }
 }

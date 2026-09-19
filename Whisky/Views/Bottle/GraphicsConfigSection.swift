@@ -96,6 +96,14 @@ struct GraphicsConfigSection: View {
                 .disabled(!bottle.settings.metalFX)
             }
 
+            // DXMT tuning applies wherever DXMT runs in this bottle, including
+            // programs that override to it while the bottle uses something else.
+            if resolvedBackend == .dxmt || programsWithGraphicsOverrides.contains(where: {
+                $0.settings.overrides?.graphicsBackend == .dxmt
+            }) {
+                DXMTSettingsView(bottle: bottle)
+            }
+
             // Force DX11 toggle -- always visible (Simple + Advanced)
             Toggle(isOn: $bottle.settings.forceD3D11) {
                 Text("config.forceD3D11")

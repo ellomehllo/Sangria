@@ -6,6 +6,8 @@ excluded:
   - .build
   - WhiskyKit/.build
   - build
+  # Headless verification harness for the Whisky DX build: a dev tool, not app code.
+  - tools/whiskydx-verify
 
 file_header:
     severity: error

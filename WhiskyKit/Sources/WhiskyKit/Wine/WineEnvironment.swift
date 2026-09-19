@@ -48,7 +48,8 @@ extension Wine {
         environment: [String: String] = [:],
         programOverrides: ProgramOverrides? = nil,
         programSettings: ProgramSettings? = nil,
-        gameProfileEnvironment: [String: String] = [:]
+        gameProfileEnvironment: [String: String] = [:],
+        graphicsDebugVariables: [LaunchEnvironmentEntry] = []
     ) -> [String: String] {
         var builder = EnvironmentBuilder()
         var dllResolver = DLLOverrideResolver(managed: [], bottleCustom: [], programCustom: [])
@@ -99,6 +100,13 @@ extension Wine {
             )
         }
 
+        // DXMT tuning: the generated dxmt.conf and the MetalFX spatial switch.
+        // DXMT-only variables, so they are inert on a launch that ends up on
+        // another backend, the same as DXVK_CONFIG_FILE above.
+        for entry in DXMTConfiguration.environment(settings: bottle.settings, bottleURL: bottle.url) {
+            builder.set(entry.key, entry.value, layer: .bottleManaged, reason: entry.reason)
+        }
+
         // Layer 4: Launcher managed -- launcher compatibility overrides
         let launcherOverrides = bottle.settings.populateLauncherManagedLayer(builder: &builder)
         dllResolver.managed.append(contentsOf: launcherOverrides)
@@ -142,6 +150,14 @@ extension Wine {
         // Layer 8: featureRuntime -- diagnostic WINEDEBUG preset override
         if let preset = programSettings?.activeWineDebugPreset, preset != .normal {
             builder.set("WINEDEBUG", preset.winedebugValue, layer: .featureRuntime)
+        }
+
+        // Per-program graphics debugging (validation layers, DXMT/DXVK log
+        // paths, frame capture). Deliberate diagnostic choices for this one
+        // launch, so they beat every settings-derived layer, including the
+        // bottleManaged MTL_DEBUG_LAYER=0 some presets write.
+        for entry in graphicsDebugVariables {
+            builder.set(entry.key, entry.value, layer: .featureRuntime, reason: entry.reason)
         }
 
         // Layer 9: callsiteOverride is left empty (populated by direct callers)
@@ -395,7 +411,9 @@ extension Wine {
         // Non-sensitive keys allowed in the launch summary
         let allowedKeys = [
             "DXVK_ASYNC", "DXVK_HUD", "WINEESYNC", "WINEMSYNC",
-            "D3DM_FORCE_D3D11", "D3DM_MTL4", "MTL_HUD_ENABLED", "WINED3DMETAL"
+            "D3DM_FORCE_D3D11", "D3DM_MTL4", "MTL_HUD_ENABLED", "WINED3DMETAL",
+            "DXMT_METALFX_SPATIAL_SWAPCHAIN", "DXMT_LOG_LEVEL", "DXMT_CAPTURE_EXECUTABLE",
+            "DXMT_CAPTURE_FRAME", "MTL_CAPTURE_ENABLED", "MTL_DEBUG_LAYER", "MTL_SHADER_VALIDATION"
         ]
         let safeEntries = allowedKeys.compactMap { key -> String? in
             guard let value = environment[key] else { return nil }

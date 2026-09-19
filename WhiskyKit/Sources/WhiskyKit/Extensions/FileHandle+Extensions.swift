@@ -234,6 +234,16 @@ extension FileHandle {
         writeWineLog(line: header)
     }
 
+    /// Writes which graphics backend a launch uses, and why, to the run log
+    /// header, so a log read on its own says what rendered the program.
+    func writeGraphicsInfo(decision: BackendDecision, apiProfile: GraphicsAPIProfile?) {
+        var header = "Graphics Backend: \(decision.summary)\n"
+        if let apiProfile {
+            header += "Detected Graphics API: \(apiProfile.summary)\n"
+        }
+        writeWineLog(line: header + "\n")
+    }
+
     @MainActor
     func writeInfo(for bottle: Bottle) {
         var header = String()

@@ -23,6 +23,8 @@ final class WineDXVKResidueTests: XCTestCase {
     private var tempDir: URL!
     private var prefixRoot: URL!
     private var originalsDXGI: URL!
+    /// A runtime `lib/wine` tree that holds no dxgi.dll unless a test adds one.
+    private var builtinRoot: URL!
 
     /// A markerless (native) PE stub: the 16 bytes at 0x40 are not the
     /// builtin signature, so `Wine.isNativePE` classifies it as native.
@@ -40,6 +42,7 @@ final class WineDXVKResidueTests: XCTestCase {
         prefixRoot = tempDir.appending(path: "bottle")
         // An originals path that does not exist unless a test creates it.
         originalsDXGI = tempDir.appending(path: "store/originals/dxgi.dll")
+        builtinRoot = tempDir.appending(path: "runtime/lib/wine")
         for dir in ["system32", "syswow64"] {
             try FileManager.default.createDirectory(
                 at: prefixRoot.appending(path: "drive_c/windows/\(dir)"),
@@ -68,11 +71,34 @@ final class WineDXVKResidueTests: XCTestCase {
         let bystander = prefixRoot.appending(path: "drive_c/windows/system32/d3d11.dll")
         try nativeFake("dxvk-d3d11").write(to: bystander)
 
-        Wine.removeStaleNativeDXGI(prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI)
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
 
         XCTAssertFalse(exists(dxgi("system32")))
         XCTAssertFalse(exists(dxgi("syswow64")))
         XCTAssertTrue(exists(bystander), "only dxgi.dll may be touched")
+    }
+
+    /// With the runtime's builtin at hand, the residue is replaced by it rather
+    /// than left missing: DXVK's d3d11 imports dxgi, and on runtime 3.1.1 an
+    /// absent file failed that import outright.
+    func testNativeResidueIsReplacedWithRuntimeBuiltin() throws {
+        for (dir, arch) in [("system32", "x86_64-windows"), ("syswow64", "i386-windows")] {
+            try nativeFake("dxmt-\(arch)").write(to: dxgi(dir))
+            let builtin = builtinRoot.appending(path: "\(arch)/dxgi.dll")
+            try FileManager.default.createDirectory(
+                at: builtin.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+            try builtinFake("wine-\(arch)").write(to: builtin)
+        }
+
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
+
+        XCTAssertEqual(try Data(contentsOf: dxgi("system32")), builtinFake("wine-x86_64-windows"))
+        XCTAssertEqual(try Data(contentsOf: dxgi("syswow64")), builtinFake("wine-i386-windows"))
     }
 
     /// Wine's own fake DLL carries the builtin marker and must stay: it is
@@ -80,7 +106,9 @@ final class WineDXVKResidueTests: XCTestCase {
     func testBuiltinMarkedDXGIIsKept() throws {
         try builtinFake("wine-fake").write(to: dxgi("system32"))
 
-        Wine.removeStaleNativeDXGI(prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI)
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
 
         XCTAssertTrue(exists(dxgi("system32")))
     }
@@ -95,7 +123,9 @@ final class WineDXVKResidueTests: XCTestCase {
         try builtinFake("backed-up-original").write(to: originalsDXGI)
         try nativeFake("dxmt-64").write(to: dxgi("system32"))
 
-        Wine.removeStaleNativeDXGI(prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI)
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
 
         XCTAssertTrue(exists(dxgi("system32")))
     }
@@ -103,7 +133,9 @@ final class WineDXVKResidueTests: XCTestCase {
     /// A prefix that never saw DXMT has no dxgi.dll of its own; the removal
     /// must be a silent no-op.
     func testMissingDXGIIsANoOp() {
-        Wine.removeStaleNativeDXGI(prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI)
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
 
         XCTAssertFalse(exists(dxgi("system32")))
         XCTAssertFalse(exists(dxgi("syswow64")))
@@ -115,7 +147,9 @@ final class WineDXVKResidueTests: XCTestCase {
     func testTruncatedFileIsLeftAlone() throws {
         try Data("stub".utf8).write(to: dxgi("system32"))
 
-        Wine.removeStaleNativeDXGI(prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI)
+        Wine.removeStaleNativeDXGI(
+            prefixRoot: prefixRoot, gptkOriginalsDXGI: originalsDXGI, builtinRoot: builtinRoot
+        )
 
         XCTAssertTrue(exists(dxgi("system32")))
     }

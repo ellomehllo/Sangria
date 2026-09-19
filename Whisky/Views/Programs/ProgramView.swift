@@ -31,7 +31,12 @@ struct ProgramView: View {
     @AppStorage("envArgsSectionExpanded") private var envArgsSectionExpanded: Bool = true
     @AppStorage("overridesSectionExpanded") private var overridesSectionExpanded: Bool = false
     @AppStorage("consoleRunsSectionExpanded") private var consoleRunsSectionExpanded: Bool = false
+    @AppStorage("graphicsSectionExpanded") private var graphicsSectionExpanded: Bool = true
+    @AppStorage("graphicsDebugSectionExpanded") private var graphicsDebugSectionExpanded: Bool = false
+    @AppStorage("compatibilityNotesSectionExpanded") private var compatibilityNotesSectionExpanded: Bool = true
     @State private var selectedRunId: UUID?
+    /// A launch the graphics API check refused, awaiting the user's choice.
+    @State private var apiRefusal: GraphicsAPIRefusal?
 
     private let sessionStore = TroubleshootingSessionStore()
 
@@ -60,11 +65,16 @@ struct ProgramView: View {
                 }
             }
             EnvironmentArgView(program: program, isExpanded: $envArgsSectionExpanded)
+            ProgramGraphicsSection(program: program, isExpanded: $graphicsSectionExpanded)
             ProgramOverrideSettingsView(
                 bottle: program.bottle,
                 program: program,
                 isExpanded: $overridesSectionExpanded
             )
+            ProgramGraphicsDebugSection(program: program, isExpanded: $graphicsDebugSectionExpanded) { capture in
+                launchProgram(frameCapture: capture)
+            }
+            ProgramCompatibilityNotesSection(program: program, isExpanded: $compatibilityNotesSectionExpanded)
             Section("console.title", isExpanded: $consoleRunsSectionExpanded) {
                 ConsoleRunHistoryView(
                     program: program,
@@ -128,6 +138,30 @@ struct ProgramView: View {
             .padding()
         }
         .toast($toast)
+        .alert(
+            apiRefusal?.title ?? "",
+            isPresented: Binding(get: { apiRefusal != nil }, set: { if !$0 { apiRefusal = nil } }),
+            presenting: apiRefusal
+        ) { refusal in
+            if let suggestion = refusal.suggestion {
+                Button("Use \(suggestion.displayName) for This Program") {
+                    var overrides = program.settings.overrides ?? ProgramOverrides()
+                    overrides.graphicsBackend = suggestion
+                    program.settings.overrides = overrides
+                    launchProgram(frameCapture: refusal.frameCapture)
+                }
+            }
+            Button("Launch Anyway") {
+                launchProgram(frameCapture: refusal.frameCapture, skipGraphicsAPICheck: true)
+            }
+            Button("Always Launch This Program Anyway") {
+                program.settings.allowUnsupportedGraphicsAPI = true
+                launchProgram(frameCapture: refusal.frameCapture)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { refusal in
+            Text(refusal.message)
+        }
         .toolbar {
             if let image = cachedIconImage {
                 ToolbarItem(id: "ProgramViewIcon", placement: .navigation) {
@@ -151,6 +185,9 @@ struct ProgramView: View {
         .animation(.whiskyDefault, value: envArgsSectionExpanded)
         .animation(.whiskyDefault, value: overridesSectionExpanded)
         .animation(.whiskyDefault, value: consoleRunsSectionExpanded)
+        .animation(.whiskyDefault, value: graphicsSectionExpanded)
+        .animation(.whiskyDefault, value: graphicsDebugSectionExpanded)
+        .animation(.whiskyDefault, value: compatibilityNotesSectionExpanded)
         .task {
             let icon = await IconCache.shared.iconOrFallback(for: program.url, peFile: program.peFile)
             self.cachedIconImage = Image(nsImage: icon)
@@ -165,17 +202,72 @@ struct ProgramView: View {
         return history.entries.first(where: { $0.id == id })
     }
 
-    private func launchProgram() {
+    private func launchProgram(frameCapture: FrameCaptureRequest? = nil, skipGraphicsAPICheck: Bool = false) {
+        // Capture modifier flags synchronously before entering async context
+        let useTerminal = NSEvent.modifierFlags.contains(.shift) && frameCapture == nil
+
+        // Ask before launching into a backend that cannot render this program
+        // (Direct3D 12 on DXMT), rather than letting it crash or show nothing.
+        if !useTerminal, !skipGraphicsAPICheck, program.settings.allowUnsupportedGraphicsAPI != true {
+            let preview = Wine.previewGraphics(
+                for: program.url,
+                bottleBackend: program.bottle.settings.graphicsBackend,
+                programBackend: program.settings.overrides?.graphicsBackend
+            )
+            if preview.assessment.isUnsupported, let message = preview.assessment.message {
+                apiRefusal = GraphicsAPIRefusal(
+                    backend: preview.decision.backend,
+                    api: preview.profile?.primaryAPI,
+                    message: message,
+                    suggestion: preview.assessment.suggestion,
+                    frameCapture: frameCapture
+                )
+                return
+            }
+        }
+
         programLoading = true
         Telemetry.capture(.firstProgramLaunchAttempted)
-        // Capture modifier flags synchronously before entering async context
-        let useTerminal = NSEvent.modifierFlags.contains(.shift)
         Task {
-            let result = await program.launchWithUserMode(useTerminal: useTerminal)
+            let result = await program.launchWithUserMode(
+                useTerminal: useTerminal,
+                frameCapture: frameCapture,
+                skipGraphicsAPICheck: skipGraphicsAPICheck
+            )
             withAnimation {
-                toast = result.toastData
+                toast = launchToast(for: result, frameCapture: frameCapture)
             }
             programLoading = false
         }
+    }
+
+    /// The launch toast, naming the backend the launch actually used.
+    private func launchToast(for result: LaunchResult, frameCapture: FrameCaptureRequest?) -> ToastData {
+        guard case let .launchedSuccessfully(name) = result,
+              let decision = program.lastBackendDecision
+        else { return result.toastData }
+        var message = "Launched \(name) on \(decision.backend.displayName)"
+        if frameCapture != nil {
+            message += ". Frame capture armed: press F10 in the game"
+        }
+        return ToastData(message: message, style: .success, autoDismiss: frameCapture == nil)
+    }
+}
+
+/// A launch the graphics API check refused, held for the confirmation alert.
+private struct GraphicsAPIRefusal {
+    let backend: GraphicsBackend
+    let api: GraphicsAPI?
+    let message: String
+    let suggestion: GraphicsBackend?
+    let frameCapture: FrameCaptureRequest?
+
+    var title: String {
+        if let api {
+            // DXMT is under active development; the others will not grow D3D12.
+            let yet = backend == .dxmt ? " yet" : ""
+            return "\(api.displayName) isn't supported by \(backend.displayName)\(yet)"
+        }
+        return "\(backend.displayName) can't run this program"
     }
 }

@@ -102405,13 +102405,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Whisky choose the best backend for your machine."
+            "value" : "Picks per launch: DXMT for D3D10/11, D3DMetal for D3D12, DXVK for D3D9 and launchers."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lets Whisky choose the best backend for your machine."
+            "value" : "Picks per launch: DXMT for D3D10/11, D3DMetal for D3D12, DXVK for D3D9 and launchers."
           }
         },
         "es" : {
@@ -102999,13 +102999,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Direct3D-11-to-Metal translation. Can outperform D3DMetal in some DX11 titles."
+            "value" : "Direct3D 10/11 straight to Metal. This build's default. No Direct3D 12 yet."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Direct3D-11-to-Metal translation. Can outperform D3DMetal in some DX11 titles."
+            "value" : "Direct3D 10/11 straight to Metal. This build's default. No Direct3D 12 yet."
           }
         },
         "es" : {
@@ -103297,13 +103297,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Direct3D-to-Vulkan via MoltenVK; broader compatibility for D3D10/11 titles."
+            "value" : "Direct3D 9–11 via Vulkan and MoltenVK. Fallback for edge cases and launcher UIs."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Direct3D-to-Vulkan via MoltenVK; broader compatibility for D3D10/11 titles."
+            "value" : "Direct3D 9–11 via Vulkan and MoltenVK. Fallback for edge cases and launcher UIs."
           }
         },
         "es" : {

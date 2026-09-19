@@ -100,6 +100,12 @@ public final class Program: ObservableObject, Equatable, Hashable, Identifiable 
         didSet { saveSettings() }
     }
 
+    /// The backend the most recent launch from this session used, and why.
+    ///
+    /// Not persisted: the run history records the same thing per run. This
+    /// is what the UI observes to update as soon as a launch resolves.
+    @Published public var lastBackendDecision: BackendDecision?
+
     /// Whether this program is pinned for quick access.
     ///
     /// Setting this property automatically updates the bottle's pin list.

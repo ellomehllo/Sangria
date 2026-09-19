@@ -163,6 +163,8 @@ public struct BottleSettings: Codable, Equatable {
     private var cleanupConfig: BottleCleanupConfig
     /// Graphics backend selection.
     private var graphicsConfig: BottleGraphicsConfig
+    /// DXMT tuning rendered into the bottle's `dxmt.conf`.
+    private var dxmtConfig: BottleDXMTConfig
     /// Display resolution and virtual desktop settings.
     private var displayConfig: BottleDisplayConfig
     /// Audio driver, latency, and device settings.
@@ -183,12 +185,14 @@ public struct BottleSettings: Codable, Equatable {
         self.inputConfig = BottleInputConfig()
         self.cleanupConfig = BottleCleanupConfig()
         self.graphicsConfig = BottleGraphicsConfig()
+        self.dxmtConfig = BottleDXMTConfig()
         self.displayConfig = BottleDisplayConfig()
         self.audioConfig = BottleAudioConfig()
         self.discordConfig = BottleDiscordConfig()
         self.customDLLOverrides = []
     }
 
+    // swiftlint:disable:next function_body_length
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.fileVersion = try container.decodeIfPresent(SemanticVersion.self, forKey: .fileVersion) ?? Self
@@ -225,6 +229,8 @@ public struct BottleSettings: Codable, Equatable {
         if !hasGraphicsConfig, self.dxvkConfig.dxvk {
             self.graphicsConfig.backend = .dxvk
         }
+        self.dxmtConfig = (try? container.decodeIfPresent(BottleDXMTConfig.self, forKey: .dxmtConfig))
+            ?? BottleDXMTConfig()
         self.displayConfig = try container.decodeIfPresent(
             BottleDisplayConfig.self,
             forKey: .displayConfig
@@ -357,6 +363,33 @@ public struct BottleSettings: Codable, Equatable {
     public var graphicsBackend: GraphicsBackend {
         get { graphicsConfig.backend }
         set { graphicsConfig.backend = newValue }
+    }
+
+    // MARK: - DXMT
+
+    /// DXMT's frame rate cap (`d3d11.preferredMaxFrameRate`). Zero means off.
+    public var dxmtFrameRateLimit: Int {
+        get { dxmtConfig.frameRateLimit }
+        set { dxmtConfig.frameRateLimit = max(0, newValue) }
+    }
+
+    /// Whether DXMT runs its swapchain through MetalFX spatial upscaling.
+    public var dxmtMetalFXSpatial: Bool {
+        get { dxmtConfig.metalFXSpatial }
+        set { dxmtConfig.metalFXSpatial = newValue }
+    }
+
+    /// DXMT's MetalFX spatial upscale factor, clamped to the 1.0-2.0 range
+    /// DXMT documents.
+    public var dxmtUpscaleFactor: Double {
+        get { dxmtConfig.metalFXUpscaleFactor }
+        set { dxmtConfig.metalFXUpscaleFactor = DXMTConfiguration.clampUpscaleFactor(newValue) }
+    }
+
+    /// Raw lines appended to the generated `dxmt.conf`.
+    public var dxmtExtraOptions: String {
+        get { dxmtConfig.extraOptions }
+        set { dxmtConfig.extraOptions = newValue }
     }
 
     /// Whether this bottle opts in to D3DMetal's DLSS-to-MetalFX path.

@@ -1,3 +1,8 @@
+> **Whisky DX: personal build.** This checkout is a personal, non-commercial build of the frankea
+> fork with DXMT as the default graphics backend, per-program graphics debugging, and a local
+> compatibility-notes database. It uses its own bundle identifier and does not auto-update. See
+> [docs/WhiskyDX.md](docs/WhiskyDX.md) and [docs/WhiskyDX-Verification.md](docs/WhiskyDX-Verification.md).
+
 <div align="center">
 
   # Whisky 🥃

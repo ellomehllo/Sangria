@@ -56,11 +56,14 @@ struct WhiskyApp: App {
     @State private var audioAlertTracker = AudioAlertTracker()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Environment(\.openURL) var openURL
+    @Environment(\.openWindow) private var openWindow
     private let updaterController: SPUStandardUpdaterController
 
     init() {
+        // Not started: this is a personal build, and Sparkle would offer the
+        // upstream release, signed with upstream's key, as an update over it.
         updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: false,
             updaterDelegate: nil,
             userDriverDelegate: SparkleUpdaterDelegate.shared
         )
@@ -168,9 +171,6 @@ struct WhiskyApp: App {
         }
         .handlesExternalEvents(matching: ["*"])
         .commands {
-            CommandGroup(after: .appInfo) {
-                SparkleView(updater: updaterController.updater)
-            }
             CommandGroup(before: .systemServices) {
                 Divider()
                 Button("open.setup") {
@@ -221,6 +221,13 @@ struct WhiskyApp: App {
                     WhiskyApp.wipeShaderCaches()
                 }
             }
+            CommandGroup(before: .windowList) {
+                Button("Compatibility Notes") {
+                    openWindow(id: CompatibilityNotesView.windowID)
+                }
+                .keyboardShortcut("C", modifiers: [.command, .shift])
+                Divider()
+            }
             CommandGroup(replacing: .help) {
                 Button("help.github") {
                     if let url = URL(string: "https://github.com/frankea/Whisky") {
@@ -242,6 +249,10 @@ struct WhiskyApp: App {
                 }
                 .keyboardShortcut("T", modifiers: [.command, .shift])
             }
+        }
+        Window("Compatibility Notes", id: CompatibilityNotesView.windowID) {
+            CompatibilityNotesView()
+                .frame(minWidth: 640, minHeight: 420)
         }
         Settings {
             SettingsView()

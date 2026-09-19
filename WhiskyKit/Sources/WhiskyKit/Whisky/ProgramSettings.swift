@@ -165,6 +165,27 @@ public struct ProgramSettings: Codable {
     /// Used by the diagnostics UI to display when the last analysis occurred.
     public var lastDiagnosisDate: Date?
 
+    // MARK: - Graphics
+
+    /// Per-program graphics debugging: validation layers, log files.
+    ///
+    /// `nil` until the user touches the Graphics Debug panel; ``effectiveGraphicsDebug``
+    /// supplies the defaults, which keep graphics logging on.
+    public var graphicsDebug: ProgramGraphicsDebugSettings?
+
+    /// Whether the user chose to launch despite the graphics API check
+    /// refusing this program's backend (for example Direct3D 12 on DXMT).
+    ///
+    /// The detection reads import tables, so it can be wrong about a game
+    /// that ships a Direct3D 11 path too; this is the per-program way past it.
+    public var allowUnsupportedGraphicsAPI: Bool?
+
+    /// ``graphicsDebug`` with defaults applied.
+    public var effectiveGraphicsDebug: ProgramGraphicsDebugSettings {
+        get { graphicsDebug ?? ProgramGraphicsDebugSettings() }
+        set { graphicsDebug = newValue }
+    }
+
     // MARK: - Dependencies
 
     /// IDs of dependency recommendations the user has dismissed for this program.
@@ -194,6 +215,14 @@ public struct ProgramSettings: Codable {
         self.dismissedDependencyRecommendations = try container.decodeIfPresent(
             Set<String>.self,
             forKey: .dismissedDependencyRecommendations
+        )
+        self.graphicsDebug = try? container.decodeIfPresent(
+            ProgramGraphicsDebugSettings.self,
+            forKey: .graphicsDebug
+        )
+        self.allowUnsupportedGraphicsAPI = try? container.decodeIfPresent(
+            Bool.self,
+            forKey: .allowUnsupportedGraphicsAPI
         )
     }
 

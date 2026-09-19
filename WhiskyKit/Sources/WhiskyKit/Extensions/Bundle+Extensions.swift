@@ -19,7 +19,11 @@
 import Foundation
 
 public extension Bundle {
+    /// The app's bundle identifier. WhiskyCmd has no bundle of its own, so it
+    /// falls back to the app's, which is what keeps it pointed at the same
+    /// runtime and bottles. This personal build uses its own identifier so it
+    /// never shares data with, or is updated over by, upstream Whisky.
     static var whiskyBundleIdentifier: String {
-        Bundle.main.bundleIdentifier ?? "com.franke.Whisky"
+        Bundle.main.bundleIdentifier ?? "local.bluevsh.WhiskyDX"
     }
 }
