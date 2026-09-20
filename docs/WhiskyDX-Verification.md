@@ -135,6 +135,24 @@ It replaced the GPTK 3.0 payload, deployed, and both bottles were refreshed with
 Adapter on D3DMetal: "AMD Compatibility Mode" (0x1002:0x66af). All of it ran through the app's own
 deploy path after the DXGI-interposer change, with no files swapped by hand.
 
+## Frame rate limit
+
+Light load (64 iterations), so an uncapped run sits at the 120 Hz display rate:
+
+| Setting | D3DMetal D3D12 | D3DMetal D3D11 | DXMT D3D11 |
+|---|---|---|---|
+| No limit | 120.3 fps | 120.3 | 120.3 |
+| `D3DM_MAX_FPS=60` | 120.3 (ignored) | 119.5 | — |
+| `d3d11.preferredMaxFrameRate = 60` | — | — | 120.3 (ignored) |
+| Sync interval 2 | 118.7 (ignored) | — | 120.3 (ignored) |
+| Bottle frame rate limit 60 | **60.3**, draw verified | **60.3** | **60.4** |
+
+A program limit of 30 under a bottle limit of 60 gave 30.5; a program limit of Off gave 120.3. Under
+heavy load (8,192 iterations, ~74 fps uncapped) a limit of 60 held 60.3. These runs used the limiter
+the Xcode build put in the app's Resources, through the harness's `set-fps` and `--fps-limit`. DXVK
+was not measured: with D3DMetal deployed its `d3d11` fails to create a device (the known
+`removeStaleNativeDXGI` gap: DXMT's native dxgi stays in the prefix when GPTK originals exist).
+
 ## Not verified
 
 - Real games. None were installed and only the runtime download was approved. Record them from each

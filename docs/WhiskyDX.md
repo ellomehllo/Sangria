@@ -80,13 +80,28 @@ replaces a per-application version set in `winecfg` for any executable launched 
 prefix and sets its overrides, so a bottle can go DXMT → DXVK → DXMT with nothing reinstalled. This was
 verified end to end, after fixing the DXMT → DXVK `dxgi.dll` bug below.
 
+## Frame rate limit (bottle → Config → Graphics, and Program Settings)
+
+One cap for every backend. None of them can be asked to do it: DXMT ignores its own setting,
+D3DMetal 4.0's `D3DM_MAX_FPS` belongs to its windowless render-to-file mode, and both present at the
+display rate whatever sync interval a game passes. What they share, with MoltenVK under DXVK and
+vkd3d, is Metal: every frame starts with `-[CAMetalLayer nextDrawable]`. `libsangriafps.dylib`, built
+from `Whisky/FrameLimiter/sangria_fps.c` by the app target's *Build Frame Limiter* phase (x86_64, to
+match Wine) into Resources, paces that call. A capped launch sets `DYLD_INSERT_LIBRARIES` to it and
+`SANGRIA_MAX_FPS` to the rate; an uncapped one sets neither. Wine's binaries are unsigned x86_64, so
+dyld honours the variable. The limiter hooks only once QuartzCore is loaded, so wineserver and other
+non-graphics processes are untouched.
+
+The bottle picker offers Off and the factors of the display's refresh rate. A program's own limit
+(Program Settings → Frame Rate Limit) replaces the bottle's; Off there runs it uncapped.
+
 ## DXMT settings (bottle → Config → Graphics)
 
 Written to `<bottle>/dxmt.conf` on every DXMT launch and passed as `DXMT_CONFIG_FILE=Z:/…`:
 
-- **Frame rate limit**: `d3d11.preferredMaxFrameRate`. Offered values are factors of the display's
-  refresh rate. *Caveat:* DXMT 0.80 confirms it loaded the file, but on macOS 26.6 / M5 the Metal HUD
-  measured unchanged ~8.3 ms frame intervals with a 30 fps cap, so it is not enforced here.
+- **Frame rate limit**: no longer offered here. DXMT 0.80 reads `d3d11.preferredMaxFrameRate` but
+  doesn't enforce it (still 120 fps with a 60 cap on the v4.6.4-beta.1 engine); the bottle-wide
+  Frame rate limit below works on DXMT.
 - **MetalFX spatial upscaling**: exports `DXMT_METALFX_SPATIAL_SWAPCHAIN=1` and writes
   `d3d11.metalSpatialUpscaleFactor` (1.0–2.0).
 - **Extra options**: raw `key = value` lines appended after the managed ones (later lines win).

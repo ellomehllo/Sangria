@@ -178,6 +178,10 @@ public struct BottleGraphicsConfig: Codable, Equatable {
     /// instant, so this is not something a bottle can be trusted to contain.
     var frameGeneration: Bool = false
 
+    /// Frames per second every program in this bottle is held to, on any
+    /// backend. Zero leaves pacing to the game. See ``FrameRateLimiter``.
+    var frameRateLimit: Int = 0
+
     /// Creates a new graphics config with the default `.recommended` backend.
     public init() {}
 
@@ -190,5 +194,6 @@ public struct BottleGraphicsConfig: Codable, Equatable {
         // Off for a bottle written before the key existed, which is the same
         // answer the property default gives a new one.
         self.frameGeneration = (try? container.decodeIfPresent(Bool.self, forKey: .frameGeneration)) ?? false
+        self.frameRateLimit = max(0, (try? container.decodeIfPresent(Int.self, forKey: .frameRateLimit)) ?? 0)
     }
 }

@@ -107,6 +107,12 @@ extension Wine {
             builder.set(entry.key, entry.value, layer: .bottleManaged, reason: entry.reason)
         }
 
+        // The bottle's frame rate limit, for every backend. A program's own
+        // limit overrides it in applyProgramOverrides.
+        for entry in FrameRateLimiter.environment(limit: bottle.settings.frameRateLimit) {
+            builder.set(entry.key, entry.value, layer: .bottleManaged, reason: "Frame rate limit")
+        }
+
         // Layer 4: Launcher managed -- launcher compatibility overrides
         let launcherOverrides = bottle.settings.populateLauncherManagedLayer(builder: &builder)
         dllResolver.managed.append(contentsOf: launcherOverrides)
@@ -200,9 +206,23 @@ extension Wine {
     static func applyProgramOverrides(
         _ overrides: ProgramOverrides,
         frameGeneration: Bool = false,
+        frameLimiterLibrary: URL? = FrameRateLimiter.libraryURL(),
         builder: inout EnvironmentBuilder,
         dllResolver: inout DLLOverrideResolver
     ) {
+        // Frame rate limit: a program's own limit, or zero to run uncapped in a
+        // bottle that has one.
+        if let limit = overrides.frameRateLimit {
+            let entries = FrameRateLimiter.environment(limit: limit, library: frameLimiterLibrary)
+            if entries.isEmpty {
+                builder.remove(FrameRateLimiter.rateVariable, layer: .programUser)
+                builder.remove(FrameRateLimiter.insertVariable, layer: .programUser)
+            }
+            for entry in entries {
+                builder.set(entry.key, entry.value, layer: .programUser)
+            }
+        }
+
         // Graphics backend override: replaces bottle-level backend entirely
         if let backend = overrides.graphicsBackend {
             let resolved = if backend == .recommended {
@@ -413,7 +433,8 @@ extension Wine {
             "DXVK_ASYNC", "DXVK_HUD", "WINEESYNC", "WINEMSYNC",
             "D3DM_FORCE_D3D11", "D3DM_MTL4", "MTL_HUD_ENABLED", "WINED3DMETAL",
             "DXMT_METALFX_SPATIAL_SWAPCHAIN", "DXMT_LOG_LEVEL", "DXMT_CAPTURE_EXECUTABLE",
-            "DXMT_CAPTURE_FRAME", "MTL_CAPTURE_ENABLED", "MTL_DEBUG_LAYER", "MTL_SHADER_VALIDATION"
+            "DXMT_CAPTURE_FRAME", "MTL_CAPTURE_ENABLED", "MTL_DEBUG_LAYER", "MTL_SHADER_VALIDATION",
+            FrameRateLimiter.rateVariable
         ]
         let safeEntries = allowedKeys.compactMap { key -> String? in
             guard let value = environment[key] else { return nil }

@@ -26,28 +26,6 @@ struct DXMTSettingsView: View {
     @State private var showExtraOptions = false
     @State private var showPreview = false
 
-    /// The main display's refresh rate. DXMT paces through CoreAnimation, so a
-    /// cap only lands exactly on a factor of this.
-    private var refreshRate: Int {
-        max(NSScreen.main?.maximumFramesPerSecond ?? 60, 1)
-    }
-
-    /// Off, then every factor of the refresh rate from 15 up.
-    private var frameRateOptions: [Int] {
-        var options = [0] + (1 ... refreshRate).filter { $0 >= 15 && refreshRate % $0 == 0 }
-        let current = bottle.settings.dxmtFrameRateLimit
-        if current > 0, !options.contains(current) {
-            options.append(current)
-            options.sort()
-        }
-        return options
-    }
-
-    private var frameRateIsFactor: Bool {
-        let limit = bottle.settings.dxmtFrameRateLimit
-        return limit == 0 || refreshRate % limit == 0
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -61,34 +39,11 @@ struct DXMTSettingsView: View {
             Text("Written to this bottle's dxmt.conf each time a program launches on DXMT.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
-            Picker(selection: $bottle.settings.dxmtFrameRateLimit) {
-                ForEach(frameRateOptions, id: \.self) { option in
-                    Text(option == 0 ? "Off" : "\(option) fps").tag(option)
-                }
-            } label: {
-                VStack(alignment: .leading) {
-                    Text("Frame rate limit")
-                    Text("Paced by Metal, not a CPU sleep. Pick a factor of your \(refreshRate) Hz display.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    // Measured with the Metal HUD on macOS 26.6 / M5: frame
-                    // intervals stayed at the display rate with a 30 fps cap.
-                    Text("DXMT 0.80 reads this but was not seen to enforce it on macOS 26. Verify with the " +
-                        "Metal HUD before relying on it.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
-            if !frameRateIsFactor {
-                Label(
-                    "\(bottle.settings.dxmtFrameRateLimit) fps isn't a factor of \(refreshRate) Hz, " +
-                        "so DXMT will settle on a lower rate.",
-                    systemImage: "exclamationmark.triangle"
-                )
+            // DXMT's own cap (d3d11.preferredMaxFrameRate) is read but not
+            // enforced by DXMT 0.80 on macOS 26, so it is no longer offered.
+            Text("To cap the frame rate, use Frame rate limit below: it works on every backend.")
                 .font(.caption)
-                .foregroundStyle(.orange)
-            }
+                .foregroundStyle(.secondary)
 
             Toggle(isOn: $bottle.settings.dxmtMetalFXSpatial) {
                 VStack(alignment: .leading) {

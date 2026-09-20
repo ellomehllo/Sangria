@@ -101,6 +101,12 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
     /// version choose Direct3D 11 over Direct3D 12.
     public var windowsVersion: WinVersion?
 
+    // MARK: - Frame Rate Limit
+
+    /// Frames per second this program is held to. `nil` inherits from bottle;
+    /// zero runs it uncapped in a bottle that has a limit.
+    public var frameRateLimit: Int?
+
     // MARK: - DLL Overrides
 
     /// Program-specific DLL overrides. `nil` inherits from bottle.
@@ -139,6 +145,7 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
             && customResolutionWidth == nil
             && customResolutionHeight == nil
             && windowsVersion == nil
+            && frameRateLimit == nil
             && dllOverrides == nil
     }
 
@@ -168,6 +175,8 @@ public struct ProgramOverrides: Codable, Equatable, Sendable {
         self.customResolutionWidth = try container.decodeIfPresent(Int.self, forKey: .customResolutionWidth)
         self.customResolutionHeight = try container.decodeIfPresent(Int.self, forKey: .customResolutionHeight)
         self.windowsVersion = container.decodeLenientIfPresent(WinVersion.self, forKey: .windowsVersion)
+        self.frameRateLimit = (try? container.decodeIfPresent(Int.self, forKey: .frameRateLimit)).flatMap { $0 }
+            .map { max(0, $0) }
         self.dllOverrides = try container.decodeIfPresent([DLLOverrideEntry].self, forKey: .dllOverrides)
         self.taggedVerbs = try container.decodeIfPresent([String].self, forKey: .taggedVerbs)
     }

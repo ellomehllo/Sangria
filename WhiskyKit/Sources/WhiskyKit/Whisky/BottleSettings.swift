@@ -365,9 +365,17 @@ public struct BottleSettings: Codable, Equatable {
         set { graphicsConfig.backend = newValue }
     }
 
+    /// Frames per second programs in this bottle are held to, on every
+    /// backend. Zero means off. See ``FrameRateLimiter``.
+    public var frameRateLimit: Int {
+        get { graphicsConfig.frameRateLimit }
+        set { graphicsConfig.frameRateLimit = max(0, newValue) }
+    }
+
     // MARK: - DXMT
 
     /// DXMT's frame rate cap (`d3d11.preferredMaxFrameRate`). Zero means off.
+    /// DXMT 0.80 does not enforce it on macOS 26; ``frameRateLimit`` does.
     public var dxmtFrameRateLimit: Int {
         get { dxmtConfig.frameRateLimit }
         set { dxmtConfig.frameRateLimit = max(0, newValue) }

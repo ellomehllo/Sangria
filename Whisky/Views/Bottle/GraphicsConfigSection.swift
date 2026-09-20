@@ -16,6 +16,7 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+import AppKit
 import Metal
 import SwiftUI
 import WhiskyKit
@@ -107,6 +108,20 @@ struct GraphicsConfigSection: View {
             // Force DX11 toggle -- always visible (Simple + Advanced)
             Toggle(isOn: $bottle.settings.forceD3D11) {
                 Text("config.forceD3D11")
+            }
+
+            // Frame rate limit -- always visible, and on every backend
+            Picker(selection: $bottle.settings.frameRateLimit) {
+                ForEach(FrameRateLimitOptions.values(including: bottle.settings.frameRateLimit), id: \.self) {
+                    Text(FrameRateLimitOptions.label($0)).tag($0)
+                }
+            } label: {
+                VStack(alignment: .leading) {
+                    Text("Frame rate limit")
+                    Text("Caps every program in this bottle, on any graphics backend. Takes effect next launch.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // The Sequoia compatibility toggle is gone: everything it set is a
@@ -284,5 +299,29 @@ struct GraphicsConfigSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// The choices a frame rate limit picker offers: off, then every factor of the
+/// main display's refresh rate from 15 up, so a cap never beats against it.
+enum FrameRateLimitOptions {
+    static var refreshRate: Int {
+        max(NSScreen.main?.maximumFramesPerSecond ?? 60, 1)
+    }
+
+    /// The options, plus `current` if it is set to something else, so the
+    /// picker can always show the selection.
+    static func values(including current: Int) -> [Int] {
+        let rate = refreshRate
+        var options = [0] + (1 ... rate).filter { $0 >= 15 && rate % $0 == 0 }
+        if current > 0, !options.contains(current) {
+            options.append(current)
+            options.sort()
+        }
+        return options
+    }
+
+    static func label(_ value: Int) -> String {
+        value == 0 ? "Off" : "\(value) fps"
     }
 }

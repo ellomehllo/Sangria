@@ -786,6 +786,7 @@
 				6E40494E29CCA19C006E3F1B /* Sources */,
 				6E40494F29CCA19C006E3F1B /* Frameworks */,
 				6E40495029CCA19C006E3F1B /* Resources */,
+				62B099FB44F482759E8DEF97 /* Build Frame Limiter */,
 				6E50D98129CD0EAF008C39F6 /* SwiftLint */,
 				6E95F66C2AB3EF2F00D585D1 /* Embed WhiskyCmd */,
 				6EFDF65A2AAE2DA800EF622F /* Embed Foundation Extensions */,
@@ -985,6 +986,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Skip SwiftLint in CI - it's handled by the CI workflow\nif [ \"$CI\" = \"true\" ] || [ \"$SKIP_SWIFTLINT_BUILD_PHASE\" = \"YES\" ]; then\n    echo \"Skipping SwiftLint (CI environment detected)\"\n    exit 0\nfi\n\nexport PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftlint > /dev/null; then\n    echo \"Running SwiftLint\"\n    swiftlint --strict\nelse\n    echo \"error: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\n    exit 1\nfi\n";
+		};
+		62B099FB44F482759E8DEF97 /* Build Frame Limiter */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Whisky/FrameLimiter/sangria_fps.c",
+			);
+			name = "Build Frame Limiter";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/libsangriafps.dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Built for x86_64 whatever the app is built for: it is loaded into Wine's\n# processes (see FrameRateLimiter), and Wine here is x86_64.\nset -e\nout=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/libsangriafps.dylib\"\nmkdir -p \"$(dirname \"$out\")\"\nxcrun --sdk macosx clang -arch x86_64 -dynamiclib -O2 -Wall -Wextra -Werror \\\n    -mmacosx-version-min=11.0 -install_name @rpath/libsangriafps.dylib \\\n    -o \"$out\" \"${SRCROOT}/Whisky/FrameLimiter/sangria_fps.c\" -lobjc\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

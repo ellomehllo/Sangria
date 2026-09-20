@@ -49,6 +49,7 @@ struct ProgramOverrideSettingsView: View {
             inputGroup
             displayGroup
             windowsVersionGroup
+            frameRateLimitGroup
             dllOverridesGroup
             winetricksSection
             resetButton
@@ -482,6 +483,26 @@ struct ProgramOverrideSettingsView: View {
         }
     }
 
+    // MARK: - Frame Rate Limit Group
+
+    private var frameRateLimitGroup: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Frame Rate Limit", isOn: frameRateLimitOverrideBinding)
+            if let limit = program.settings.overrides?.frameRateLimit {
+                Picker("Frame rate limit", selection: frameRateLimitBinding) {
+                    ForEach(FrameRateLimitOptions.values(including: limit), id: \.self) {
+                        Text(FrameRateLimitOptions.label($0)).tag($0)
+                    }
+                }
+                Text("Off runs this program uncapped even when its bottle has a limit.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                inheritedSummary(FrameRateLimitOptions.label(bottle.settings.frameRateLimit))
+            }
+        }
+    }
+
     // MARK: - DLL Overrides Group
 
     private var dllOverridesGroup: some View {
@@ -755,6 +776,23 @@ struct ProgramOverrideSettingsView: View {
                 ensureOverrides()
                 program.settings.overrides?.windowsVersion = isOn ? bottle.settings.windowsVersion : nil
             }
+        )
+    }
+
+    private var frameRateLimitOverrideBinding: Binding<Bool> {
+        Binding(
+            get: { program.settings.overrides?.frameRateLimit != nil },
+            set: { isOn in
+                ensureOverrides()
+                program.settings.overrides?.frameRateLimit = isOn ? bottle.settings.frameRateLimit : nil
+            }
+        )
+    }
+
+    private var frameRateLimitBinding: Binding<Int> {
+        Binding(
+            get: { program.settings.overrides?.frameRateLimit ?? bottle.settings.frameRateLimit },
+            set: { program.settings.overrides?.frameRateLimit = $0 }
         )
     }
 

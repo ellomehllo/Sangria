@@ -162,6 +162,12 @@ func run(_ args: [String]) async throws {
         overrides.graphicsBackend = raw == "inherit" ? nil : parseBackend(raw)
         program.settings.overrides = overrides
     }
+    // --fps-limit N|inherit: the per-program frame rate limit (0 runs uncapped)
+    if let raw = option("--fps-limit", in: args) {
+        var overrides = program.settings.overrides ?? ProgramOverrides()
+        overrides.frameRateLimit = raw == "inherit" ? nil : Int(raw)
+        program.settings.overrides = overrides
+    }
     // --win-version win7|win10|…|inherit: the per-program Windows version override
     if let raw = option("--win-version", in: args) {
         var overrides = program.settings.overrides ?? ProgramOverrides()
@@ -335,6 +341,15 @@ func main() async throws {
         target.settings.graphicsBackend = parseBackend(args[1])
         target.saveBottleSettings()
         print("bottle \(args[0]) backend = \(target.settings.graphicsBackend.rawValue)")
+    case "set-fps":
+        // set-fps BOTTLE N: the bottle's frame rate limit, 0 for off. The app
+        // ships the limiter in its Resources; point SANGRIA_FPS_LIBRARY at one.
+        guard args.count == 2, let limit = Int(args[1]) else { fail("set-fps BOTTLE FPS") }
+        let target = bottle(named: args[0])
+        target.settings.frameRateLimit = limit
+        target.saveBottleSettings()
+        print("bottle \(args[0]) frame rate limit = \(target.settings.frameRateLimit), " +
+            "limiter: \(FrameRateLimiter.libraryURL()?.path(percentEncoded: false) ?? "none")")
     case "set-dxmt":
         guard args.count == 4 else { fail("set-dxmt BOTTLE FPS on|off FACTOR") }
         let target = bottle(named: args[0])
