@@ -104,14 +104,14 @@ struct LibraryCatalogueTests {
 
         #expect(SteamLibrarySource.artworkURL(appID: 12_345, steamRoot: root) == nil)
 
-        // The portrait is a fallback: a card can crop it, and no art is worse.
+        // The landscape banner is a fallback: a card crops it, and no art is worse.
+        try Data().write(to: cache.appending(path: "12345").appending(path: "header.jpg"))
+        #expect(SteamLibrarySource.artworkURL(appID: 12_345, steamRoot: root)?.lastPathComponent == "header.jpg")
+
+        // The portrait poster is the shape a card actually wants, so it wins.
         try Data().write(to: cache.appending(path: "12345").appending(path: "library_600x900.jpg"))
         #expect(SteamLibrarySource.artworkURL(appID: 12_345, steamRoot: root)?.lastPathComponent
             == "library_600x900.jpg")
-
-        // The landscape banner is the shape a card actually wants, so it wins.
-        try Data().write(to: cache.appending(path: "12345").appending(path: "header.jpg"))
-        #expect(SteamLibrarySource.artworkURL(appID: 12_345, steamRoot: root)?.lastPathComponent == "header.jpg")
 
         // Steam used a flat name before it used a folder per app.
         try Data().write(to: cache.appending(path: "999_header.jpg"))

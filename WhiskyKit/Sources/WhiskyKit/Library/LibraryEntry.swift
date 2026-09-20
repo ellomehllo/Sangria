@@ -159,14 +159,16 @@ public enum SteamLibrarySource: LibrarySource {
     /// Matching on the filename rather than the path survives all three, and the
     /// next one as long as the names hold.
     ///
-    /// Landscape first because that is the shape of a card. A portrait capsule
-    /// is the fallback and gets cropped, which still beats an empty card.
+    /// Portrait first because that is the shape of a library card — the same
+    /// 2:3 poster every other game launcher shows, and the one Steam's own
+    /// library uses. A landscape banner is the fallback and gets cropped to the
+    /// card's middle, which still beats an empty card.
     public static func artworkURL(appID: Int, steamRoot: URL) -> URL? {
-        let landscape = ["library_header.jpg", "header.jpg", "\(appID)_header.jpg"]
         let portrait = ["library_capsule.jpg", "library_600x900.jpg", "\(appID)_library_600x900.jpg"]
+        let landscape = ["library_header.jpg", "header.jpg", "\(appID)_header.jpg"]
         let cached = cachedFiles(appID: appID, steamRoot: steamRoot)
 
-        for name in landscape + portrait {
+        for name in portrait + landscape {
             if let match = cached.first(where: { $0.lastPathComponent == name }) {
                 return match
             }

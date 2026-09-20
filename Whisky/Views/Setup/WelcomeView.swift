@@ -68,7 +68,7 @@ struct WelcomeView: View {
                     isInstalled: $whiskyWineInstalled,
                     shouldCheckInstallStatus: $shouldCheckInstallStatus,
                     showUninstall: true,
-                    name: "WhiskyWine"
+                    name: InstallStatusView.wineRuntimeName
                 )
             }
             .formStyle(.grouped)
@@ -127,6 +127,10 @@ struct WelcomeView: View {
 }
 
 struct InstallStatusView: View {
+    /// What the bundled Wine build is called on screen. It is also the identity
+    /// this view tests in ``uninstall()``, so the two cannot drift apart.
+    static let wineRuntimeName = "Sangria Runtime"
+
     @Binding var isInstalled: Bool?
     @Binding var shouldCheckInstallStatus: Bool
     @State var showUninstall: Bool = false
@@ -169,7 +173,7 @@ struct InstallStatusView: View {
     }
 
     func uninstall() {
-        if name == "WhiskyWine" {
+        if name == Self.wineRuntimeName {
             uninstallWhiskyWineWithOptionalBottles()
         }
 

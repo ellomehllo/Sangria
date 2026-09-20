@@ -72,6 +72,10 @@ extension ContentView {
                             }
                         }
                         .id(bottle.url)
+                        .listRowBackground(sidebarSelection(isSelected: selected == bottle.url))
+                        .foregroundStyle(selected == bottle.url
+                            ? AnyShapeStyle(.white)
+                            : AnyShapeStyle(.primary))
                     }
                 }
             }
@@ -92,6 +96,17 @@ extension ContentView {
         }
     }
 
+    /// The sidebar's selected-row fill, in the app's own blue.
+    ///
+    /// A `List` on macOS draws selection in the *system* accent — whatever the
+    /// user chose in Appearance settings — and neither the app's AccentColor
+    /// asset nor a SwiftUI `tint` reaches it. Drawing the row background here
+    /// is what keeps the sidebar the same colour as the rest of the app.
+    func sidebarSelection(isSelected: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(isSelected ? AnyShapeStyle(Color.brandBlue) : AnyShapeStyle(.clear))
+    }
+
     /// Selecting nothing means the library, not an empty pane: the library is
     /// the home screen, and a person who has not picked a bottle has not made a
     /// mistake.
@@ -104,10 +119,8 @@ extension ContentView {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(selected == nil ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
-        )
+        .foregroundStyle(selected == nil ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+        .listRowBackground(sidebarSelection(isSelected: selected == nil))
         .accessibilityIdentifier("sidebar.library")
     }
 

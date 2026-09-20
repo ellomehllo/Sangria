@@ -8,6 +8,8 @@ excluded:
   - build
   # Headless verification harness for Sangria: a dev tool, not app code.
   - tools/whiskydx-verify
+  # Icon generator: a script run by hand when the artwork changes, not app code.
+  - tools/sangria-icon
 
 file_header:
     severity: error

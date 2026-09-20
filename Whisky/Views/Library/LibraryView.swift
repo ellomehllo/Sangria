@@ -110,11 +110,13 @@ struct LibraryView: View {
     private var grid: some View {
         ScrollView {
             LazyVGrid(
-                // 180 rather than 220 so two columns fit at the window's own
-                // minimum width, where the sidebar leaves about 330pt: one
-                // column of landscape cards is a list with wasted space.
-                columns: [GridItem(.adaptive(minimum: 180, maximum: 320), spacing: 14)],
-                spacing: 14
+                // 180 is the narrowest a poster can be and still fit "Last
+                // played 2 hr. ago" beside the play button; two of them still
+                // fit at the window's own minimum width, where the sidebar
+                // leaves about 330pt. Capped at 230: a poster wider than that
+                // is 345 tall and only a row of them fits on screen.
+                columns: [GridItem(.adaptive(minimum: 180, maximum: 230), spacing: 16)],
+                spacing: 16
             ) {
                 ForEach(visible) { row in
                     LibraryCard(

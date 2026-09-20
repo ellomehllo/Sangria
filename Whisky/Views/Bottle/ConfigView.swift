@@ -97,8 +97,11 @@ struct ConfigView: View {
             DLLOverrideConfigSection(bottle: bottle, isExpanded: $dllOverrideSectionExpanded)
             DependencyConfigSection(bottle: bottle)
             gameConfigRevertSection
-            Section("Diagnostics") {
-                Text("Analyze Wine crash output for troubleshooting guidance")
+            // "Diagnostics" and "Stability" were two sections doing one job:
+            // both answered "something went wrong, what now?", and which report
+            // lived under which heading was not guessable.
+            Section("config.diagnostics.title") {
+                Text("config.diagnostics.caption")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -112,29 +115,23 @@ struct ConfigView: View {
                     showTroubleshootingWizard = true
                 }
 
-                Button("Export Diagnostic Report\u{2026}") {
+                Button("config.diagnostics.export") {
                     loadLatestDiagnosisAndExport()
                 }
                 .disabled(mostRecentlyDiagnosedProgram == nil)
 
-                Button("View Latest Diagnosis") {
+                Button("config.diagnostics.viewLatest") {
                     loadLatestDiagnosisAndView()
                 }
                 .disabled(mostRecentlyDiagnosedProgram == nil)
 
-                TroubleshootingHistoryView(
-                    bottleURL: bottle.url,
-                    programURL: nil
-                )
-            }
-            Section("Stability") {
-                Button("Generate Stability Diagnostics") {
+                Button("config.diagnostics.stability") {
                     Task {
                         stabilityDiagnosticReport = await StabilityDiagnostics.generateDiagnosticReport(for: bottle)
                         showStabilityDiagnostics = true
                     }
                 }
-                .help("Generates a bounded, privacy-safe report for issue triage.")
+                .help("config.diagnostics.stability.help")
 
                 Button {
                     Task {
@@ -170,6 +167,11 @@ struct ConfigView: View {
                 }
                 .disabled(isRepairingPrefix)
                 .help("config.repairPrefix.help")
+
+                TroubleshootingHistoryView(
+                    bottleURL: bottle.url,
+                    programURL: nil
+                )
             }
             CleanupConfigSection(bottle: bottle, isExpanded: $cleanupSectionExpanded)
         }
@@ -189,9 +191,9 @@ struct ConfigView: View {
         }
         .sheet(isPresented: $showStabilityDiagnostics) {
             DiagnosticsReportView(
-                title: "Stability Diagnostics Report",
+                title: String(localized: "config.diagnostics.stability.title"),
                 report: stabilityDiagnosticReport,
-                defaultFilenamePrefix: "whisky-stability-diagnostics"
+                defaultFilenamePrefix: "sangria-stability-diagnostics"
             )
         }
         // Both item-based: presenting on a flag while the content reads a

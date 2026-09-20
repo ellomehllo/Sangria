@@ -37,11 +37,10 @@ enum LibraryEntryState: Equatable {
 
 /// One library entry, coloured by its own icon.
 ///
-/// Landscape rather than the portrait box art other launchers use, because they
-/// download 600x900 posters and we have a 32 to 256px icon out of the
-/// executable. Stretching an icon into a poster looks broken; a wide card is the
-/// shape an icon and a name actually want, and it leaves the icon at its native
-/// size where it stays crisp.
+/// A 2:3 poster, the shape every other game library uses and the shape Steam
+/// already caches art in. An entry with no poster is not stretched into one:
+/// the icon sits at its native size on a gradient sampled from itself, so a
+/// 32px icon stays crisp instead of turning to mush at 300px.
 struct LibraryCard: View {
     let item: LibraryEntry
     /// Only shown when there is more than one bottle, since with a single bottle
@@ -70,8 +69,12 @@ struct LibraryCard: View {
     }
 
     /// A launcher is named by what it is. A pin takes its name from the
-    /// executable, which is how the Steam client ends up on screen as "steam".
-    private var title: String { item.launcher?.displayName ?? item.name }
+    /// executable, which is how the Steam client ends up on screen as "steam"
+    /// and Metro Exodus as "MetroExodus" — so a filename gets read back as a
+    /// title before it goes on the card.
+    private var title: String {
+        item.launcher?.displayName ?? item.name.titleCasedFromFileName
+    }
 
     var body: some View {
         Button(action: launch) {
@@ -94,8 +97,9 @@ struct LibraryCard: View {
         .task(id: item.id) {
             await loadIcon()
         }
+        .help(detail)
         .accessibilityLabel(title)
-        .accessibilityValue(Text(subtitle))
+        .accessibilityValue(Text(detail))
         .accessibilityHint(Text("library.card.hint"))
     }
 
@@ -136,34 +140,51 @@ struct LibraryCard: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
-                    // The icon tile is the identity when there is no artwork.
-                    // With artwork it would sit on top of the thing it stands in
-                    // for, so it goes.
-                    if artwork == nil {
-                        iconView
-                    }
                     Spacer()
                     statusView
                 }
+                // The icon is the identity when there is no poster, so it sits
+                // in the middle of the card the way a poster would. With a
+                // poster it would cover the thing it stands in for, so it goes.
+                if artwork == nil {
+                    Spacer(minLength: 8)
+                    HStack {
+                        Spacer()
+                        iconView
+                        Spacer()
+                    }
+                }
                 Spacer(minLength: 8)
-                Text(title)
-                    .font(.headline)
-                    .lineLimit(1)
-                    // Tail, not middle: a game's name is recognisable from its
-                    // start, and "The Elder Scro...Special Edition" reads worse
-                    // than losing the edition suffix.
-                    .truncationMode(.tail)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(foreground.opacity(0.7))
-                    .lineLimit(1)
+                HStack(alignment: .bottom, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(.headline)
+                            .lineLimit(2)
+                            // Tail, not middle: a game's name is recognisable
+                            // from its start, and "The Elder Scro...Special
+                            // Edition" reads worse than losing the suffix.
+                            .truncationMode(.tail)
+                            .multilineTextAlignment(.leading)
+                        Text(subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(artwork == nil ? foreground.opacity(0.7) : .white.opacity(0.75))
+                            .lineLimit(1)
+                            // A poster leaves about 110pt beside the play
+                            // button. Shrinking a little beats "Last played 2
+                            // ho…", which is the part people are reading.
+                            .minimumScaleFactor(0.85)
+                    }
+                    Spacer(minLength: 0)
+                    playButton
+                }
             }
             .padding(14)
         }
         // Artwork brings its own scrim, so a card showing art is always dark
         // under the label whatever the sampled palette says.
         .foregroundStyle(artwork == nil ? foreground : .white)
-        .frame(height: 132)
+        // 2:3, the poster ratio Steam's own cached art is cut to.
+        .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -179,7 +200,10 @@ struct LibraryCard: View {
         .scaleEffect(isActive ? 1.015 : 1)
     }
 
-    /// The top-right corner: what it is doing, or the offer to start it.
+    /// The top-right corner: what it is doing, when it is doing something.
+    ///
+    /// Only states that are not the resting one appear here. Starting it is the
+    /// card's own job, and that lives in ``playButton``.
     @ViewBuilder
     private var statusView: some View {
         switch state {
@@ -199,33 +223,66 @@ struct LibraryCard: View {
                 .padding(.vertical, 4)
                 .cardGlass(.capsule)
         case .idle:
-            if isActive {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 13))
-                    .frame(width: 30, height: 30)
-                    .cardGlass(.circle, interactive: true)
-                    .transition(.opacity.combined(with: .scale))
-            }
+            EmptyView()
         }
+    }
+
+    /// Always on screen, not only on hover: it is the one thing a library card
+    /// is for, and a control that appears only under a mouse pointer does not
+    /// exist for anyone reading the screen or driving it from the keyboard. It
+    /// brightens on hover rather than materialising.
+    private var playButton: some View {
+        Image(systemName: state == .running ? "arrow.up.forward" : "play.fill")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            // The icon's own pink-to-blue sweep. This is the one control in the
+            // app that should look like the app rather than like macOS.
+            .background(LinearGradient.brand.opacity(isActive ? 1 : 0.85), in: Circle())
+            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+            .scaleEffect(isActive ? 1.08 : 1)
     }
 
     @ViewBuilder
     private var iconView: some View {
         if let icon {
+            // 72 rather than the icon's own 44: it is the poster now. Executable
+            // icons go up to 256px, so this is still inside the source art on
+            // anything modern, and a small one is padded rather than upscaled by
+            // the frame.
             icon
                 .resizable()
-                .frame(width: 44, height: 44)
-                .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .shadow(color: .black.opacity(0.35), radius: 6, y: 2)
         } else {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(.white.opacity(0.12))
-                .frame(width: 44, height: 44)
+                .frame(width: 72, height: 72)
         }
     }
 
-    /// Source first when it is not a pin, because "Steam" tells you why an entry
-    /// is here at all, and a pin needs no explanation.
+    /// The one line under the name: when it last ran.
+    ///
+    /// A poster card is about 180pt wide, which fits roughly one phrase. The
+    /// four-part line this used to show truncated to "Steam · 2 hours a…" on
+    /// every card, so everything except the part people scan for moved to
+    /// ``detail``, which the tooltip and VoiceOver still read in full.
     private var subtitle: String {
+        guard let lastPlayed else {
+            return String(localized: "library.card.neverRun")
+        }
+        return String(
+            format: String(localized: "library.card.lastPlayed %@"),
+            // Abbreviated ("2 hr. ago", not "2 hours ago"): a card is about
+            // 110pt wide here once the play button has its corner.
+            lastPlayed.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
+        )
+    }
+
+    /// Everything about the entry, for the tooltip and for VoiceOver: where it
+    /// came from, which bottle holds it, and when it last ran.
+    private var detail: String {
         var parts: [String] = []
         if item.isLauncher {
             parts.append(String(localized: "library.card.launcher"))
@@ -233,11 +290,7 @@ struct LibraryCard: View {
         if item.source == .steam {
             parts.append(String(localized: "library.source.steam"))
         }
-        if let lastPlayed {
-            parts.append(lastPlayed.formatted(.relative(presentation: .named)))
-        } else {
-            parts.append(String(localized: "library.card.neverRun"))
-        }
+        parts.append(subtitle)
         if let bottleName {
             parts.append(bottleName)
         }

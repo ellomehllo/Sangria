@@ -52,7 +52,7 @@ struct DiagnosticExportSheet: View {
         let dateString = dateFormatter.string(from: Date())
         let bottleName = sanitizeName(bottle.settings.name)
         let programName = sanitizeName(program.name)
-        return "Whisky-Diagnostics-\(bottleName)-\(programName)-\(dateString).zip"
+        return "Sangria-Diagnostics-\(bottleName)-\(programName)-\(dateString).zip"
     }
 
     var body: some View {

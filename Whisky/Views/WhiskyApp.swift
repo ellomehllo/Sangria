@@ -105,6 +105,11 @@ struct WhiskyApp: App {
                 // Wide enough for two columns of library cards next to the
                 // sidebar. At 600 the grid could only ever draw one.
                 .frame(minWidth: ViewWidth.window, minHeight: 316)
+                // Sangria's own blue, stated rather than inherited. macOS
+                // overrides an app's AccentColor asset whenever the user has
+                // picked a system accent in Appearance settings, so without
+                // this the app wears whatever colour that is and never its own.
+                .tint(.brandBlue)
                 .environmentObject(BottleVM.shared)
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
@@ -253,9 +258,11 @@ struct WhiskyApp: App {
         Window("Compatibility Notes", id: CompatibilityNotesView.windowID) {
             CompatibilityNotesView()
                 .frame(minWidth: 640, minHeight: 420)
+                .tint(.brandBlue)
         }
         Settings {
             SettingsView()
+                .tint(.brandBlue)
         }
         MenuBarExtra("Sangria", systemImage: "wineglass", isInserted: $showMenuBarExtra) {
             WhiskyMenuBarView()

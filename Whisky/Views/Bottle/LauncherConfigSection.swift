@@ -38,9 +38,12 @@ struct LauncherConfigSection: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Enable launcher compatibility mode
                 Toggle("Launcher Compatibility Mode", isOn: $bottle.settings.launcherCompatibilityMode)
+                    // The upstream tracking issue is cited in LauncherFixes, not
+                    // here: a repo reference in a tooltip is noise to the person
+                    // reading it.
                     .help("""
                     Enables automatic fixes for Steam, Rockstar, EA App, Epic Games, \
-                    and other game launchers (frankea/Whisky#41)
+                    and other game launchers
                     """)
 
                 if bottle.settings.launcherCompatibilityMode {

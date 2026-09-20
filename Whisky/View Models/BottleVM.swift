@@ -329,7 +329,7 @@ final class BottleVM: ObservableObject {
         var lines: [String] = []
         lines.reserveCapacity(32)
 
-        lines.append("Whisky Bottle Creation Diagnostics (Issue #61)")
+        lines.append("Sangria Bottle Creation Diagnostics")
         lines.append("Timestamp: \(Date().formatted())")
         lines.append("")
         appendBottleCreationInputLines(into: &lines, context: context)
@@ -358,11 +358,11 @@ final class BottleVM: ObservableObject {
     ) {
         lines.append("[SYSTEM]")
         lines.append("macOS Version: \(MacOSVersion.current.description)")
-        lines.append("Whisky Version: \(whiskyVersionString)")
+        lines.append("Sangria Version: \(whiskyVersionString)")
         let whiskyWineInstalled = WhiskyWineInstaller.isWhiskyWineInstalled() ? "yes" : "no"
-        lines.append("WhiskyWine Installed: \(whiskyWineInstalled)")
+        lines.append("Sangria Runtime Installed: \(whiskyWineInstalled)")
         if let whiskyWineVersion = WhiskyWineInstaller.whiskyWineVersion() {
-            lines.append("WhiskyWine Version: \(whiskyWineVersion)")
+            lines.append("Sangria Runtime Version: \(whiskyWineVersion)")
         }
         lines.append("")
     }

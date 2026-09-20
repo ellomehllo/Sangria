@@ -54,17 +54,35 @@ struct BottleView: View {
                 }
                 .padding()
                 Form {
-                    NavigationLink(value: BottleStage.programs) {
-                        Label("tab.programs", systemImage: "list.bullet")
+                    Section {
+                        destinationRow(
+                            .programs,
+                            title: "tab.programs",
+                            caption: "tab.programs.caption",
+                            systemImage: "list.bullet",
+                            identifier: "nav.installedPrograms"
+                        )
                     }
-                    .accessibilityIdentifier("nav.installedPrograms")
-                    NavigationLink(value: BottleStage.config) {
-                        Label("tab.config", systemImage: "gearshape")
-                    }
-                    .accessibilityIdentifier("nav.bottleConfiguration")
-                    NavigationLink(value: BottleStage.processes) {
-                        HStack {
-                            Label("tab.processes", systemImage: "hockey.puck.circle")
+                    // The settings people change between sessions sit here, on
+                    // the bottle's own screen. Everything else is one tap away
+                    // under All Settings, which keeps this screen readable
+                    // without hiding anything.
+                    BottleQuickConfigSection(bottle: bottle)
+                    Section {
+                        destinationRow(
+                            .config,
+                            title: "tab.config",
+                            caption: "tab.config.caption",
+                            systemImage: "gearshape",
+                            identifier: "nav.bottleConfiguration"
+                        )
+                        destinationRow(
+                            .processes,
+                            title: "tab.processes",
+                            caption: "tab.processes.caption",
+                            systemImage: "hockey.puck.circle",
+                            identifier: "nav.runningProcesses"
+                        ) {
                             let count = ProcessRegistry.shared.getProcessCount(for: bottle)
                             if count > 0 {
                                 Text("\(count)")
@@ -76,12 +94,14 @@ struct BottleView: View {
                                     .foregroundStyle(.blue)
                             }
                         }
+                        destinationRow(
+                            .gameConfigs,
+                            title: "tab.gameConfigs",
+                            caption: "tab.gameConfigs.caption",
+                            systemImage: "gamecontroller",
+                            identifier: "nav.gameConfigurations"
+                        )
                     }
-                    .accessibilityIdentifier("nav.runningProcesses")
-                    NavigationLink(value: BottleStage.gameConfigs) {
-                        Label("tab.gameConfigs", systemImage: "gamecontroller")
-                    }
-                    .accessibilityIdentifier("nav.gameConfigurations")
                 }
                 .formStyle(.grouped)
                 .scrollDisabled(true)
@@ -186,6 +206,39 @@ struct BottleView: View {
 }
 
 extension BottleView {
+    /// One row of the bottle's navigation, with a line under the title saying
+    /// what is behind it.
+    ///
+    /// "Game Configurations" and "All Settings" are both places settings live,
+    /// and the titles alone do not tell anyone which one holds the thing they
+    /// came for; the captions do.
+    @ViewBuilder
+    private func destinationRow(
+        _ stage: BottleStage,
+        title: LocalizedStringKey,
+        caption: LocalizedStringKey,
+        systemImage: String,
+        identifier: String,
+        @ViewBuilder accessory: () -> some View = { EmptyView() }
+    ) -> some View {
+        NavigationLink(value: stage) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                    Text(caption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                accessory()
+            }
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
     private func updateStartMenu() async {
         await bottle.updateInstalledPrograms()
 

@@ -59,12 +59,15 @@ struct MigrateBottlesSheet: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Import Bottles from the Original Whisky")
+            // The one place "Whisky" stays: it names the separate, archived app
+            // these bottles came from, and calling it Sangria would be a lie.
+            Text("Import Bottles from Whisky")
                 .font(.headline)
             Text(
                 """
-                These bottles were created by the archived original Whisky app. Importing references \
-                them in place — your files aren't moved or copied, and the original app keeps working.
+                These bottles were created by Whisky, the archived app Sangria was forked from. \
+                Importing references them in place — your files aren't moved or copied, and the \
+                other app keeps working.
                 """
             )
             .font(.subheadline)
@@ -81,7 +84,7 @@ struct MigrateBottlesSheet: View {
                 Image(systemName: "tray")
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
-                Text("No bottles from the original Whisky were found.")
+                Text("No bottles from Whisky were found.")
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

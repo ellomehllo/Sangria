@@ -46,7 +46,10 @@ struct PinView: View {
             .scaleEffect(opening ? 2 : 1)
             .opacity(opening ? 0 : 1)
             Spacer()
-            Text(name)
+            // Display only. `name` is what gets written back to the pin, so
+            // reading "MetroExodus" as a title here must not turn into renaming
+            // the pin to "Metro Exodus" behind the user's back.
+            Text(name.titleCasedFromFileName)
                 .multilineTextAlignment(.center)
                 .lineLimit(2, reservesSpace: true)
         }

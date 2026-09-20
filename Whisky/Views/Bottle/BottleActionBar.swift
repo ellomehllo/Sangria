@@ -71,7 +71,9 @@ struct BottleActionBar: View {
             }
             .glassButton()
             .accessibilityIdentifier("bottle.openWinetricks")
-            Button("button.run") {
+            // Its own label rather than the shared "Run": every other Run in
+            // the app starts something immediately, and this one opens a picker.
+            Button("button.runProgram") {
                 let panel = NSOpenPanel()
                 panel.allowsMultipleSelection = false
                 panel.canChooseDirectories = false
@@ -164,7 +166,13 @@ private extension View {
             if prominent {
                 buttonStyle(.glassProminent)
             } else {
-                buttonStyle(.glass)
+                // Neutral glass, by clearing the tint rather than setting one.
+                // The app states its own tint at the window and a plain glass
+                // button honours it, which turned the three secondary actions
+                // into three more blue buttons and left the bar with no
+                // emphasis at all; tinting them `.primary` instead just made
+                // them black.
+                buttonStyle(.glass).tint(nil as Color?)
             }
         } else {
             if prominent {
