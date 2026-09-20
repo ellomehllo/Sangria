@@ -103,11 +103,12 @@ extension Winetricks {
     /// stale between releases and the unattended install aborts with exit 1 on
     /// the SHA256 mismatch (winetricks#2195).
     ///
-    /// They also get `-q` (W_OPT_UNATTENDED, adds `/q` to the redist install):
-    /// without it the vc_redist installer shows its wizard and waits for a
-    /// click nothing in the panel prompts for, so the process never exits and
-    /// the winetricks.log entry is never written. Scoped to the vcrun verbs
-    /// until other verbs are checked for unattended behavior.
+    /// Every verb gets `-q` (W_OPT_UNATTENDED). Without it an installer shows
+    /// its wizard and waits for a click nothing in the panel prompts for, so
+    /// the process never exits and the winetricks.log entry is never written.
+    /// It is not only installers: `w_try_regsvr32` adds `/S` only when
+    /// unattended, so `xact` put up one "Successfully registered DLL" panel
+    /// per audio DLL, about twenty of them, each waiting on a click.
     private static func configureInstallProcess(
         verb: String,
         bottleURL: URL,
@@ -119,8 +120,8 @@ extension Winetricks {
         var arguments = ["bash", winetricksPath]
         if verb.hasPrefix("vcrun") {
             arguments.append("--force")
-            arguments.append("-q")
         }
+        arguments.append("-q")
         arguments.append(verb)
         process.arguments = arguments
         process.environment = [
