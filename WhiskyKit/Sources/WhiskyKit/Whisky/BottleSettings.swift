@@ -35,15 +35,26 @@ public struct PinnedProgram: Codable, Hashable, Equatable {
     ///
     /// When `true`, the pin remains valid even if the volume is disconnected.
     public var removable: Bool
+    /// Where the executable sits inside `C:\Games`, when it sits there at all.
+    ///
+    /// Stored alongside ``url`` rather than instead of it. A relative path
+    /// survives the bottle being renamed, moved, or reached through a
+    /// different container path — which the absolute URL does not — but pins
+    /// can also point outside the Games folder, and an older build of the app
+    /// reads only `url`. Keeping both means neither case loses anything.
+    public var relativePath: String?
 
     /// Creates a new pinned program entry.
     ///
     /// - Parameters:
     ///   - name: The display name for the pin.
     ///   - url: The URL to the program's executable.
-    public init(name: String, url: URL) {
+    ///   - gamesRoot: The Games folder, when there is one, so the pin can also
+    ///     record where the executable sits inside it.
+    public init(name: String, url: URL, gamesRoot: GamesRoot? = nil) {
         self.name = name
         self.url = url
+        self.relativePath = gamesRoot?.relativePath(for: url)
         do {
             let volume = try url.resourceValues(forKeys: [.volumeURLKey]).volume
             self.removable = try !(volume?.resourceValues(forKeys: [.volumeIsInternalKey]).volumeIsInternal ?? false)
@@ -57,6 +68,23 @@ public struct PinnedProgram: Codable, Hashable, Equatable {
         self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         self.url = try container.decodeIfPresent(URL.self, forKey: .url)
         self.removable = try container.decodeIfPresent(Bool.self, forKey: .removable) ?? false
+        self.relativePath = try container.decodeIfPresent(String.self, forKey: .relativePath)
+    }
+
+    /// Where the executable actually is now.
+    ///
+    /// The relative path is tried first when there is a Games folder to try it
+    /// against, because it is the one that is still right after the bottle
+    /// moved. It has to resolve to something that exists, though — a pin to a
+    /// game that was deleted should come back as gone, not as a stale absolute
+    /// path that happens to be readable.
+    public func resolvedURL(gamesRoot: GamesRoot?) -> URL? {
+        if let relativePath, let gamesRoot, let resolved = gamesRoot.resolve(relativePath: relativePath) {
+            if FileManager.default.fileExists(atPath: resolved.path(percentEncoded: false)) {
+                return resolved
+            }
+        }
+        return url
     }
 }
 
@@ -78,6 +106,13 @@ public struct BottleInfo: Codable, Equatable {
     /// an unpin was undone within seconds and the pin looked unremovable.
     /// Pinning again clears the entry, so this never blocks a deliberate pin.
     var unpinnedPrograms: [URL] = []
+    /// What this bottle is for.
+    ///
+    /// Casual mode runs everything in one bottle and never shows the word, so
+    /// something has to say which one that is. Written only when the user picks
+    /// a different main bottle in Developer Mode; otherwise the choice is made
+    /// by ``MainBottleResolver`` from what is on disk.
+    var role: BottleRole = .unset
 
     /// Creates a new BottleInfo with default values.
     public init() {}
@@ -88,6 +123,7 @@ public struct BottleInfo: Codable, Equatable {
         self.pins = try container.decodeIfPresent([PinnedProgram].self, forKey: .pins) ?? []
         self.blocklist = try container.decodeIfPresent([URL].self, forKey: .blocklist) ?? []
         self.unpinnedPrograms = try container.decodeIfPresent([URL].self, forKey: .unpinnedPrograms) ?? []
+        self.role = try container.decodeIfPresent(BottleRole.self, forKey: .role) ?? .unset
     }
 }
 
@@ -310,6 +346,12 @@ public struct BottleSettings: Codable, Equatable {
         set { info.unpinnedPrograms = newValue }
     }
 
+    /// What this bottle is for. See ``BottleRole``.
+    public var role: BottleRole {
+        get { info.role }
+        set { info.role = newValue }
+    }
+
     /// Which of a Start Menu scan's findings should actually be pinned.
     ///
     /// The scan runs every time a bottle screen opens and after every launch,
@@ -321,6 +363,31 @@ public struct BottleSettings: Codable, Equatable {
         let refused = Set(unpinnedPrograms)
         let already = Set(pins.compactMap(\.url))
         return candidates.filter { !refused.contains($0) && !already.contains($0) }
+    }
+
+    /// Records where each pin sits inside the Games folder, for the pins that
+    /// sit there and do not say so yet.
+    ///
+    /// Purely additive: it writes ``PinnedProgram/relativePath`` and touches
+    /// nothing else. No pin is dropped, rewritten or reordered, a pin that
+    /// already has a relative path is left alone, and a pin pointing somewhere
+    /// outside `C:\Games` simply does not get one. Safe to run on every load,
+    /// which is what it is for.
+    ///
+    /// - Returns: `true` when something changed, so the caller can avoid an
+    ///   otherwise pointless write to the bottle's plist.
+    @discardableResult
+    public mutating func migratePinsToRelativePaths(gamesRoot: GamesRoot) -> Bool {
+        var changed = false
+        for index in pins.indices where pins[index].relativePath == nil {
+            guard let url = pins[index].url,
+                  let relative = gamesRoot.relativePath(for: url),
+                  !relative.isEmpty
+            else { continue }
+            pins[index].relativePath = relative
+            changed = true
+        }
+        return changed
     }
 
     /// The synchronization mode for Wine.

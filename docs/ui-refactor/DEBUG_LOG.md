@@ -31,3 +31,36 @@ one.
 state on disk.
 
 `swift test --filter GamesRootTests` → **22 tests passed**. SwiftLint clean.
+
+## Slice 2 — a bottle role, and choosing the main bottle
+
+`BottleInfo.role` (`unset` / `main` / `compatibility`) with a lenient decode, and
+`MainBottleResolver`, a pure function over `BottleCandidate` facts: an explicit
+`.main` first, then whichever bottle already holds `drive_c/Games`, then
+whatever is left, and `nil` when there is nothing available. Ties sort by path
+so the answer does not depend on registry order.
+
+`compatibility` is a reserved case with nothing that assigns it, as asked —
+room for a second prefix later, no feature built now.
+
+Nothing failed. 10 tests.
+
+## Slice 3 — shortcuts that survive a move
+
+`PinnedProgram.relativePath`, filled in when the target is under the Games root,
+plus `resolvedURL(gamesRoot:)` which prefers it and falls back to the absolute
+URL. `BottleSettings.migratePinsToRelativePaths(gamesRoot:)` is additive only:
+it writes the new field and touches nothing else, so no pin is dropped,
+reordered or rewritten, and an older build that reads only `url` still works.
+
+**Failed first, twice:**
+
+1. `#expect(settings.migratePinsToRelativePaths(…))` — the macro captures its
+   operand immutably, so a mutating method cannot be called inside one. Hoisted
+   the call out and expected the result.
+2. The test fixture is a noncopyable struct, and its `init` did throwing work
+   *after* the last stored property was assigned: "conditional initialization or
+   destruction of noncopyable types is not supported". Moved every `try` ahead
+   of the first assignment.
+
+`swift test` → **389 tests in 49 suites passed** (was 346).
