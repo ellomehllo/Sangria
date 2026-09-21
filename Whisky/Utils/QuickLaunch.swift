@@ -63,6 +63,7 @@ enum QuickLaunch {
     static func launch(pin: PinnedProgram, in bottle: Bottle) {
         guard let url = pin.url else { return }
         let program = Program(url: url, bottle: bottle)
+        MouseReleaseHotkey.shared.gameStarted()
         Task {
             let result = await program.launchWithUserMode(useTerminal: false)
             guard case let .launchFailed(_, errorDescription) = result else { return }

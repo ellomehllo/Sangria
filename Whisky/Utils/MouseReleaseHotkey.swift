@@ -49,35 +49,36 @@ final class MouseReleaseHotkey {
 
     private var hotKey: EventHotKeyRef?
     private var handler: EventHandlerRef?
-    private var observer: (any NSObjectProtocol)?
+    private var idleCheck: Timer?
 
     private init() {}
 
-    /// Starts following what is running.
+    /// Claims ⌥⌘C because a game is starting, and arranges to give it back.
     ///
-    /// The hotkey is claimed only while a game is actually running, so the
-    /// combination is not taken from the rest of the system the whole time
-    /// Sangria is open. Every way of starting a game ends up registering a
-    /// process, which is why this listens there rather than at the five
-    /// separate places that can start one.
-    func startWatching() {
-        guard observer == nil else { return }
-        observer = NotificationCenter.default.addObserver(
-            forName: .wineProcessesChanged, object: nil, queue: .main
-        ) { _ in
-            MainActor.assumeIsolated {
-                MouseReleaseHotkey.shared.syncWithRunningGames()
-            }
-        }
-        syncWithRunningGames()
+    /// Called from the launch path rather than driven by ``ProcessRegistry``:
+    /// nothing in this app ever calls `ProcessRegistry.register`, so the
+    /// registry is permanently empty and anything waiting on it waits forever.
+    /// A wineserver, by contrast, exists exactly while something is alive in a
+    /// prefix, which is the question actually being asked.
+    func gameStarted() {
+        enable()
+        startIdleCheck()
     }
 
-    private func syncWithRunningGames() {
-        let running = ProcessRegistry.shared.getAllProcesses().values.contains { !$0.isEmpty }
-        if running {
-            enable()
-        } else {
-            disable()
+    /// Gives the combination back once every prefix has gone quiet.
+    ///
+    /// A poll, because there is no notification to wait for. Fifteen seconds
+    /// is slow enough to cost nothing and quick enough that ⌥⌘C is not held
+    /// hostage long after a game exits, and it only runs while it is held.
+    private func startIdleCheck() {
+        guard idleCheck == nil else { return }
+        idleCheck = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { _ in
+            Task { @MainActor in
+                for bottle in BottleVM.shared.bottles where bottle.isAvailable {
+                    if await Wine.isWineserverRunning(for: bottle) { return }
+                }
+                MouseReleaseHotkey.shared.disable()
+            }
         }
     }
 
@@ -127,6 +128,8 @@ final class MouseReleaseHotkey {
 
     /// Gives the combination back to the rest of the system.
     func disable() {
+        idleCheck?.invalidate()
+        idleCheck = nil
         if let hotKey {
             UnregisterEventHotKey(hotKey)
             self.hotKey = nil

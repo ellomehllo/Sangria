@@ -47,9 +47,12 @@ enum GameLauncher {
         // its fixes be written before anything reads the settings.
         LauncherFixes.detectAndApply(from: url, for: bottle)
         Telemetry.capture(.firstProgramLaunchAttempted)
-        // ⌥⌘C is not claimed here: `MouseReleaseHotkey` follows the process
-        // registry instead, which every launch path reaches and this one does
-        // not have a monopoly on.
+        // ⌥⌘C, for as long as something is running. Claimed here because a
+        // game about to take the mouse pointer is exactly when it has to
+        // exist, and released again once every prefix has gone quiet.
+        if !useTerminal {
+            MouseReleaseHotkey.shared.gameStarted()
+        }
         return await program(for: url, in: bottle).launchWithUserMode(useTerminal: useTerminal)
     }
 }

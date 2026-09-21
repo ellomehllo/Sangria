@@ -88987,13 +88987,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Run games in their own window"
+            "value" : "Wrap games in a Sangria window"
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Run games in their own window"
+            "value" : "Wrap games in a Sangria window"
           }
         }
       }
@@ -89004,13 +89004,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gives each game a normal Mac window — title bar, green fullscreen button, ⌘W. Turn it off to let a game change the whole display itself."
+            "value" : "A compatibility option for older games that take over the whole display. Leave it off unless a game needs it — some Direct3D 12 games render only a black screen inside it."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gives each game a normal Mac window — title bar, green fullscreen button, ⌘W. Turn it off to let a game change the whole display itself."
+            "value" : "A compatibility option for older games that take over the whole display. Leave it off unless a game needs it — some Direct3D 12 games render only a black screen inside it."
           }
         }
       }

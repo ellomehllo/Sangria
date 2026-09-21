@@ -243,3 +243,43 @@ enabled — checked against Notepad. So a game in its own window can be closed,
 minimised, moved and Mission-Controlled, but not put into native macOS
 fullscreen. Filling the screen is the closest equivalent, and the desktop is
 already sized to the display.
+
+## Slice 9 — the regression slice 8 caused, and the hotkey that never worked
+
+**I black-screened Resident Evil 2.** Not by changing what a virtual desktop
+does, but by making a dormant setting take effect.
+
+`LibraryModel.launchProgram` used to take a fallback branch whenever the
+program was not in `bottle.programs` — and in casual mode nothing ever scans
+that list, so it was *always* the fallback. That branch called
+`Wine.runProgram(at:bottle:)` with **no overrides**. RE2's per-game
+`virtualDesktopEnabled: true` had therefore never once been honoured.
+
+Unifying the launch path through `GameLauncher` — which creates a `Program` on
+demand, loading its overrides — made it real. Evidence, from the launch logs:
+
+| | |
+|---|---|
+| every RE2 launch up to `2026-09-21T08:18Z` | `start /unix …` |
+| `08:45Z` (mine) and `08:58Z` (the user's) | `explorer /desktop=re2.exe,1470x956` |
+
+The 6,390-second session the user actually played is in the first group. So a
+virtual desktop black-screens this Direct3D 12 / D3DMetal title, and the
+default I chose in slice 8 was wrong. `windowedMode` now defaults to **off**
+and is described as what it is: a compatibility option for old titles that
+take over the display, which some D3D12 games cannot render inside. RE2's
+dormant override was removed (backed up beside it), restoring the exact
+configuration of every session that worked.
+
+**⌥⌘C could never have fired.** `ProcessRegistry.register` is called from
+nowhere in this codebase — the registry is permanently empty, so the
+`.wineProcessesChanged` hook added in slice 8 had nothing to announce and the
+hotkey was never claimed. Shipped broken, and described to the user as
+working, which is worse.
+
+Rewired to `Wine.isWineserverRunning(for:)`: a wineserver exists exactly while
+something is alive in a prefix, which is the question actually being asked.
+Claimed at launch (from `GameLauncher` *and* `QuickLaunch`, which does not go
+through it), released by a fifteen-second poll once every prefix is quiet.
+
+**Still unverified:** that ⌥⌘C fires inside a running game.

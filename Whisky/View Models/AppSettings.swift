@@ -92,14 +92,18 @@ final class AppSettings: ObservableObject {
 
     // MARK: - Display
 
-    /// Whether a game gets a Mac window of its own instead of taking the
-    /// whole screen.
+    /// Whether to wrap every game in a Wine desktop window.
     ///
-    /// On is the default, and it is what makes a Windows game behave like a
-    /// Mac one: a title bar, a green fullscreen button, ⌘W. It is also the
-    /// cure for an old title that changes the display mode and leaves a Retina
-    /// screen black, and the thing that gives macOS a window to hold the mouse
-    /// pointer inside (see ``holdMouseInGame``).
+    /// **Off by default, and it stays off until a game asks for it.** It is a
+    /// compatibility tool, not the way to get a Mac-like window: it helps an
+    /// old title that would otherwise change the display mode out from under
+    /// everything, and it hurts a modern one. Resident Evil 2 — Direct3D 12
+    /// through D3DMetal — renders nothing but black inside one, while running
+    /// perfectly without.
+    ///
+    /// A game left to manage its own window gets a *better* Mac window than
+    /// this produces: a plain Wine window has a working green fullscreen
+    /// button, and the desktop window's is disabled.
     @Published var windowedMode: Bool {
         didSet { defaults.set(windowedMode, forKey: Key.windowedMode) }
     }
@@ -155,13 +159,10 @@ final class AppSettings: ObservableObject {
         theme = AppTheme(rawValue: defaults.string(forKey: Key.theme) ?? "") ?? .system
         automaticUpdates = defaults.flag(Key.automaticUpdates, default: true)
         quitGamesOnExit = defaults.flag(Key.quitGamesOnExit, default: true)
-        // Migrated from the old "start games fullscreen", which meant the
-        // opposite. A bottle that answered that question keeps its answer.
-        if let legacy = defaults.object(forKey: Key.legacyStartFullscreen) as? Bool {
-            windowedMode = defaults.flag(Key.windowedMode, default: !legacy)
-        } else {
-            windowedMode = defaults.flag(Key.windowedMode, default: true)
-        }
+        // Off unless asked for. Defaulting it on black-screened a Direct3D 12
+        // title that had worked for months, so the default follows the
+        // evidence rather than the ambition.
+        windowedMode = defaults.flag(Key.windowedMode, default: false)
         holdMouseInGame = defaults.flag(Key.holdMouseInGame, default: false)
         retinaMode = defaults.flag(Key.retinaMode, default: false)
         showFPSOverlay = defaults.flag(Key.showFPSOverlay, default: false)
@@ -182,8 +183,6 @@ final class AppSettings: ObservableObject {
         static let quitGamesOnExit = "quitGamesOnExit"
         static let windowedMode = "runGamesWindowed"
         static let holdMouseInGame = "holdMouseInGame"
-        /// The old spelling, which meant the opposite. Read once, for migration.
-        static let legacyStartFullscreen = "startGamesFullscreen"
         static let retinaMode = "highResolutionMode"
         static let showFPSOverlay = "showFPSOverlay"
         static let metalFXUpscaling = "metalFXUpscaling"
