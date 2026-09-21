@@ -187,3 +187,59 @@ started and drew its loading screen; every Wine process was closed afterwards.
 `swift test` → **406 tests in 50 suites passed**. Build → **BUILD SUCCEEDED**.
 `build-for-testing` → **TEST BUILD SUCCEEDED** (the UI tests compile; they have
 not been run).
+
+## Slice 8 — windows, the escaping pointer, and ⌥⌘C
+
+Three requests, and one of them found a defect from slice 4.
+
+**"Start games fullscreen" was a no-op.** It wrote
+`bottle.settings.virtualDesktopEnabled`, and nothing read it: `Wine.runProgram`
+only consulted the *per-program* override, and the bottle-level flag was
+applied solely by the Developer-Mode resolution section. The setting persisted
+and did nothing. `GameDefaults.seedIfNeeded` was dead code too — written in
+slice 4, never called.
+
+Both fixed. The launch now asks `Wine.wantsOwnWindow(override:bottleDefault:)`,
+which is a nil-coalesce rather than an `||` so a game told explicitly *not* to
+be windowed is not windowed by the bottle's default. `GameDefaults.synchronise`
+seeds then applies, once, at startup.
+
+Also found: `ResolutionPreset.matchDisplay` returned a hardcoded `1920x1080` —
+the one answer "Match Mac Display" promises not to give.
+
+**The double-cursor bug.** `strings` on the Wine mac driver shows two clipping
+strategies — `WineConfinementClipCursorHandler` and
+`WineEventTapClipCursorHandler` — and a registry switch between them,
+`HKCU\Software\Wine\Mac Driver\UseConfinementCursorClipping`. Confinement is
+the default and only holds while Wine's window is key and active; the event tap
+does not care, but needs Accessibility permission. Exposed as a setting, with
+an in-line notice when the permission is missing, because a `CGEventTap`
+without it creates nothing and reports nothing.
+
+**⌥⌘C** uses Carbon's `RegisterEventHotKey` — `NSEvent`'s global monitor needs
+Accessibility and this has to work for someone who has granted nothing. It
+brings Sangria forward, and Wine's driver releases the pointer on
+`APP_DEACTIVATED`.
+
+It is claimed only while a game runs. First attempt hooked `GameLauncher.play`,
+which was wrong: there are five launch sites and `QuickLaunch` (the `whisky://`
+scheme and the Dock menu) is not one of them. Moved to a
+`.wineProcessesChanged` notification from `ProcessRegistry`, which every launch
+path reaches. `LibraryModel` now goes through `GameLauncher` as well — it had
+been skipping the launcher fixes the other paths applied.
+
+**Verified:** the bottle flag flips to `true` at startup; RE2's launch log
+shows `explorer /desktop=re2.exe,1470x956`; the window is a real Mac window
+titled "RESIDENT EVIL 2"; `"UseConfinementCursorClipping"="n"` lands in
+`user.reg` (written and then removed again). 412 tests, build clean.
+
+**Not verified:** that ⌥⌘C fires inside a running game, and that forcing the
+event tap actually cures the escaping pointer — that is a mechanism with
+evidence behind it, not a demonstrated fix.
+
+**A limitation with evidence.** A virtual-desktop window's green button is
+*disabled* (`AXFullScreenButton` greyed), while a plain Wine window's is
+enabled — checked against Notepad. So a game in its own window can be closed,
+minimised, moved and Mission-Controlled, but not put into native macOS
+fullscreen. Filling the screen is the closest equivalent, and the desktop is
+already sized to the display.

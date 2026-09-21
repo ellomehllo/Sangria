@@ -253,6 +253,13 @@ struct ContentView: View {
                 // saying the word. The app makes it.
                 bottleVM.ensureMainBottleExists()
             }
+
+            // The settings pane is app-wide, so the bottle has to agree with it
+            // before the first Play — otherwise a switch reads one way on
+            // screen and another in the prefix.
+            if let bottle = bottleVM.mainBottle {
+                GameDefaults.synchronise(settings, with: bottle)
+            }
             let task = Task.detached {
                 await WhiskyWineInstaller.shouldUpdateWhiskyWine()
             }

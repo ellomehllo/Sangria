@@ -116,6 +116,9 @@ struct WhiskyApp: App {
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
                     settings.applyTheme()
+                    // Claims ⌥⌘C while a game is running, and gives it back
+                    // when none is.
+                    MouseReleaseHotkey.shared.startWatching()
                     Task.detached {
                         await WhiskyApp.deleteOldLogs()
                     }

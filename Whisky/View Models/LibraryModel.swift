@@ -219,27 +219,19 @@ extension LibraryModel {
         Task { await orchestrator(for: bottle).stop(game) }
     }
 
+    /// Starts a pinned program.
+    ///
+    /// Through ``GameLauncher`` rather than reaching for the `Program` itself:
+    /// the library and the Games browser have to mean the same thing by Play,
+    /// and this path used to skip the launcher fixes the other one applied —
+    /// and, once ⌥⌘C existed, would have skipped claiming it too.
     private func launchProgram(at url: URL, in bottle: Bottle) {
-        // Through the bottle's own program list where possible, so the launch
-        // picks up that program's overrides rather than only the bottle's.
-        guard let program = bottle.programs.first(where: { $0.url == url }) else {
-            programLaunching.insert(url)
-            Task {
-                defer { programLaunching.remove(url) }
-                do {
-                    try await Wine.runProgram(at: url, bottle: bottle)
-                } catch {
-                    launchError = error.localizedDescription
-                }
-            }
-            return
-        }
-
         programLaunching.insert(url)
-        Telemetry.capture(.firstProgramLaunchAttempted)
+        // Read before the await: modifier state is a live global, and by the
+        // time the task runs the key is long since up.
         let useTerminal = NSEvent.modifierFlags.contains(.shift)
         Task {
-            let result = await program.launchWithUserMode(useTerminal: useTerminal)
+            let result = await GameLauncher.play(url, in: bottle, useTerminal: useTerminal)
             programLaunching.remove(url)
             toast = result.toastData
         }

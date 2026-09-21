@@ -39,11 +39,17 @@ enum GameLauncher {
     }
 
     /// Starts a program and reports how it went.
-    static func play(_ url: URL, in bottle: Bottle) async -> LaunchResult {
+    ///
+    /// - Parameter useTerminal: Opens it in a terminal instead. Capture
+    ///   `NSEvent.modifierFlags` at the call site, before any `await`.
+    static func play(_ url: URL, in bottle: Bottle, useTerminal: Bool = false) async -> LaunchResult {
         // Same order as every other launch path: detect the launcher and let
         // its fixes be written before anything reads the settings.
         LauncherFixes.detectAndApply(from: url, for: bottle)
         Telemetry.capture(.firstProgramLaunchAttempted)
-        return await program(for: url, in: bottle).launchWithUserMode(useTerminal: false)
+        // ⌥⌘C is not claimed here: `MouseReleaseHotkey` follows the process
+        // registry instead, which every launch path reaches and this one does
+        // not have a monopoly on.
+        return await program(for: url, in: bottle).launchWithUserMode(useTerminal: useTerminal)
     }
 }

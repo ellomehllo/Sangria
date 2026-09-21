@@ -268,6 +268,51 @@ public extension Wine {
         )
     }
 
+    /// Chooses how Wine holds the mouse pointer inside a game.
+    ///
+    /// The Mac driver has two ways of doing it, and they fail differently:
+    ///
+    /// - **Confinement** (the default) asks macOS to confine the pointer to a
+    ///   rectangle of one of Wine's own windows. It is free and needs no
+    ///   permissions, but it only holds while that window is key and active.
+    ///   A game that re-asserts `ClipCursor` at a moment the confinement
+    ///   cannot be satisfied loses the lock silently — which is what leaves a
+    ///   macOS pointer drifting across a game that is still drawing its own.
+    /// - **An event tap** intercepts pointer events system-wide and puts the
+    ///   pointer back. It does not care which window is active, so it survives
+    ///   the case above — but `CGEventTapCreate` needs Accessibility
+    ///   permission, and silently creates nothing without it.
+    ///
+    /// - Parameters:
+    ///   - bottle: The bottle whose registry to modify.
+    ///   - useConfinement: `true` for the default window confinement, `false`
+    ///     to force the event tap.
+    @MainActor
+    static func changeCursorClipping(bottle: Bottle, useConfinement: Bool) async throws {
+        try await addRegistryKey(
+            bottle: bottle,
+            key: RegistryKey.macDriver.rawValue,
+            name: "UseConfinementCursorClipping",
+            data: useConfinement ? "y" : "n",
+            type: .string
+        )
+    }
+
+    /// Whether Wine is set to use window confinement for the mouse pointer.
+    ///
+    /// `nil` when the prefix has never been told either way, which means
+    /// Wine's own default — confinement on any macOS that supports it.
+    @MainActor
+    static func cursorClippingUsesConfinement(bottle: Bottle) async throws -> Bool? {
+        guard let value = try await queryRegistryKey(
+            bottle: bottle,
+            key: RegistryKey.macDriver.rawValue,
+            name: "UseConfinementCursorClipping",
+            type: .string
+        ) else { return nil }
+        return value.lowercased().hasPrefix("y")
+    }
+
     /// Disables Wine's virtual desktop mode by removing the Desktop value.
     ///
     /// - Parameter bottle: The bottle whose registry to modify.

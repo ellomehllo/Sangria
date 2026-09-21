@@ -87110,6 +87110,108 @@
         }
       }
     },
+    "settings.holdMouse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the mouse inside the game"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the mouse inside the game"
+          }
+        }
+      }
+    },
+    "settings.holdMouse.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this if your Mac pointer sometimes escapes and you end up with two cursors. Needs Accessibility permission, and takes effect the next time a game starts."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this if your Mac pointer sometimes escapes and you end up with two cursors. Needs Accessibility permission, and takes effect the next time a game starts."
+          }
+        }
+      }
+    },
+    "settings.holdMouse.needsAccessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sangria needs Accessibility permission for this. Turn it on in System Settings › Privacy & Security › Accessibility, then start the game again."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sangria needs Accessibility permission for this. Turn it on in System Settings › Privacy & Security › Accessibility, then start the game again."
+          }
+        }
+      }
+    },
+    "settings.holdMouse.openSettings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings…"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings…"
+          }
+        }
+      }
+    },
+    "settings.hotkey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release the mouse"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release the mouse"
+          }
+        }
+      }
+    },
+    "settings.hotkey.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press this while a game has your pointer and Sangria comes forward, giving the pointer back to macOS. Click the game again to hand it back."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press this while a game has your pointer and Sangria comes forward, giving the pointer back to macOS. Click the game again to hand it back."
+          }
+        }
+      }
+    },
     "settings.metalFX" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -87504,40 +87606,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sharper text and menus in games that support it. Takes effect the next time a game starts."
-          }
-        }
-      }
-    },
-    "settings.startFullscreen" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start games fullscreen"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start games fullscreen"
-          }
-        }
-      }
-    },
-    "settings.startFullscreen.caption" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Off gives each game its own window. Turn it off if a game leaves your screen black."
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Off gives each game its own window. Turn it off if a game leaves your screen black."
           }
         }
       }
@@ -88909,6 +88977,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新"
+          }
+        }
+      }
+    },
+    "settings.windowed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run games in their own window"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run games in their own window"
+          }
+        }
+      }
+    },
+    "settings.windowed.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gives each game a normal Mac window — title bar, green fullscreen button, ⌘W. Turn it off to let a game change the whole display itself."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gives each game a normal Mac window — title bar, green fullscreen button, ⌘W. Turn it off to let a game change the whole display itself."
           }
         }
       }

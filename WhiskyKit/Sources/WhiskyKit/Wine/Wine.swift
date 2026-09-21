@@ -17,6 +17,7 @@
 //  If not, see https://www.gnu.org/licenses/.
 //
 
+import AppKit
 import Foundation
 import os.log
 
@@ -387,14 +388,17 @@ public class Wine {
             try? FileManager.default.removeItem(at: prunedLogURL)
         }
 
-        // Build launch arguments with optional per-program virtual desktop
+        // Build launch arguments, in a window when asked for one.
+        //
+        // A program's own override wins; otherwise the bottle decides. The
+        // bottle used to be ignored here, which made its "windowed" setting a
+        // value that persisted and did nothing.
         let launchArgs: [String]
-        if let overrides = programOverrides,
-           let vdEnabled = overrides.virtualDesktopEnabled, vdEnabled {
-            let resolution = Self.resolveVirtualDesktopResolution(from: overrides)
-            let desktopName = programName.replacingOccurrences(of: " ", with: "_")
+        if let windowed = Self.windowedLaunch(
+            programName: programName, overrides: programOverrides, bottle: bottle
+        ) {
             launchArgs = [
-                "explorer", "/desktop=\(desktopName),\(resolution)",
+                "explorer", "/desktop=\(windowed.name),\(windowed.resolution)",
                 url.path(percentEncoded: false)
             ] + args
         } else {
@@ -500,22 +504,71 @@ public class Wine {
         )
     }
 
-    /// Resolves the virtual desktop resolution string from per-program overrides.
+    /// Whether this launch gets a window of its own, and how big.
     ///
-    /// - Parameter overrides: The program overrides containing display settings.
-    /// - Returns: A resolution string like `"1920x1080"`.
-    private static func resolveVirtualDesktopResolution(from overrides: ProgramOverrides) -> String {
-        let preset = overrides.resolutionPreset ?? .r1920x1080
+    /// Running a game inside `explorer /desktop=` is what gives it a single
+    /// real Mac window — a title bar, a green fullscreen button, and a window
+    /// Wine can confine the mouse pointer inside. Without one the game draws
+    /// straight onto the desktop, and macOS's pointer confinement has no
+    /// window to hold the cursor in.
+    ///
+    /// - Returns: the desktop name and resolution, or `nil` to launch normally.
+    @MainActor
+    private static func windowedLaunch(
+        programName: String, overrides: ProgramOverrides?, bottle: Bottle
+    ) -> (name: String, resolution: String)? {
+        let wantsWindow = wantsOwnWindow(
+            override: overrides?.virtualDesktopEnabled,
+            bottleDefault: bottle.settings.virtualDesktopEnabled
+        )
+        guard wantsWindow else { return nil }
+
+        let preset = overrides?.resolutionPreset ?? bottle.settings.resolutionPreset
+        let width = overrides?.customResolutionWidth ?? bottle.settings.customResolutionWidth
+        let height = overrides?.customResolutionHeight ?? bottle.settings.customResolutionHeight
+        return (
+            name: programName.replacingOccurrences(of: " ", with: "_"),
+            resolution: resolutionString(preset: preset, customWidth: width, customHeight: height)
+        )
+    }
+
+    /// Whether a launch gets a window of its own.
+    ///
+    /// A program that states a preference states it for both answers: an
+    /// explicit `false` is a request *not* to be windowed and must not fall
+    /// through to the bottle's default, which is why this is a nil-coalesce
+    /// rather than an `||`.
+    static func wantsOwnWindow(override: Bool?, bottleDefault: Bool) -> Bool {
+        override ?? bottleDefault
+    }
+
+    /// A `WIDTHxHEIGHT` string for a resolution preset.
+    @MainActor
+    static func resolutionString(preset: ResolutionPreset, customWidth: Int, customHeight: Int) -> String {
         if let dims = preset.dimensions {
             return "\(dims.width)x\(dims.height)"
         }
-        if preset == .custom {
-            let width = overrides.customResolutionWidth ?? 1_920
-            let height = overrides.customResolutionHeight ?? 1_080
-            return "\(width)x\(height)"
+        switch preset {
+        case .custom:
+            return "\(customWidth)x\(customHeight)"
+        default:
+            // "Match Mac Display" used to return a hardcoded 1920x1080, which
+            // is the one thing it promises not to do. Asking the screen costs
+            // nothing and is right on every Mac that is not a 1080p one.
+            return mainDisplayResolution()
         }
-        // matchDisplay fallback
-        return "1920x1080"
+    }
+
+    /// The main display's size in points, or 1920x1080 when there is no screen
+    /// to ask (headless, or a test).
+    @MainActor
+    static func mainDisplayResolution() -> String {
+        guard let screen = NSScreen.main else { return "1920x1080" }
+        // Points rather than pixels: a virtual desktop the size of a Retina
+        // display's backing store is four times the area anyone asked for, and
+        // arrives as a window far bigger than the screen.
+        let frame = screen.visibleFrame
+        return "\(Int(frame.width))x\(Int(frame.height))"
     }
 
     /// Generates a shell command string for running a Windows program.

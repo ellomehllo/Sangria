@@ -92,11 +92,26 @@ final class AppSettings: ObservableObject {
 
     // MARK: - Display
 
-    /// Off means the game gets a window of its own instead of taking the
-    /// screen — which is also the cure for an old title that changes the
-    /// display mode and leaves a Retina screen black.
-    @Published var startFullscreen: Bool {
-        didSet { defaults.set(startFullscreen, forKey: Key.startFullscreen) }
+    /// Whether a game gets a Mac window of its own instead of taking the
+    /// whole screen.
+    ///
+    /// On is the default, and it is what makes a Windows game behave like a
+    /// Mac one: a title bar, a green fullscreen button, ⌘W. It is also the
+    /// cure for an old title that changes the display mode and leaves a Retina
+    /// screen black, and the thing that gives macOS a window to hold the mouse
+    /// pointer inside (see ``holdMouseInGame``).
+    @Published var windowedMode: Bool {
+        didSet { defaults.set(windowedMode, forKey: Key.windowedMode) }
+    }
+
+    /// Whether to use the stronger of Wine's two ways of keeping the pointer
+    /// inside a game.
+    ///
+    /// Off by default because the stronger one needs Accessibility permission,
+    /// which is the user's to grant and nobody should be nagged for until the
+    /// weaker one has actually failed them.
+    @Published var holdMouseInGame: Bool {
+        didSet { defaults.set(holdMouseInGame, forKey: Key.holdMouseInGame) }
     }
 
     @Published var retinaMode: Bool {
@@ -140,7 +155,14 @@ final class AppSettings: ObservableObject {
         theme = AppTheme(rawValue: defaults.string(forKey: Key.theme) ?? "") ?? .system
         automaticUpdates = defaults.flag(Key.automaticUpdates, default: true)
         quitGamesOnExit = defaults.flag(Key.quitGamesOnExit, default: true)
-        startFullscreen = defaults.flag(Key.startFullscreen, default: true)
+        // Migrated from the old "start games fullscreen", which meant the
+        // opposite. A bottle that answered that question keeps its answer.
+        if let legacy = defaults.object(forKey: Key.legacyStartFullscreen) as? Bool {
+            windowedMode = defaults.flag(Key.windowedMode, default: !legacy)
+        } else {
+            windowedMode = defaults.flag(Key.windowedMode, default: true)
+        }
+        holdMouseInGame = defaults.flag(Key.holdMouseInGame, default: false)
         retinaMode = defaults.flag(Key.retinaMode, default: false)
         showFPSOverlay = defaults.flag(Key.showFPSOverlay, default: false)
         metalFXUpscaling = defaults.flag(Key.metalFXUpscaling, default: false)
@@ -158,7 +180,10 @@ final class AppSettings: ObservableObject {
         static let theme = "appTheme"
         static let automaticUpdates = "automaticUpdates"
         static let quitGamesOnExit = "quitGamesOnExit"
-        static let startFullscreen = "startGamesFullscreen"
+        static let windowedMode = "runGamesWindowed"
+        static let holdMouseInGame = "holdMouseInGame"
+        /// The old spelling, which meant the opposite. Read once, for migration.
+        static let legacyStartFullscreen = "startGamesFullscreen"
         static let retinaMode = "highResolutionMode"
         static let showFPSOverlay = "showFPSOverlay"
         static let metalFXUpscaling = "metalFXUpscaling"

@@ -17,6 +17,7 @@
 //
 
 import AppKit
+import ApplicationServices
 import SwiftUI
 import WhiskyKit
 
@@ -73,9 +74,34 @@ struct GameSettingsView: View {
 
     private var display: some View {
         Section("settings.display") {
-            captioned("settings.startFullscreen", "settings.startFullscreen.caption") {
-                Toggle("", isOn: writeThrough($settings.startFullscreen))
+            captioned("settings.windowed", "settings.windowed.caption") {
+                Toggle("", isOn: writeThrough($settings.windowedMode))
                     .labelsHidden()
+            }
+            captioned("settings.holdMouse", "settings.holdMouse.caption") {
+                Toggle("", isOn: Binding(
+                    get: { settings.holdMouseInGame },
+                    set: { newValue in
+                        settings.holdMouseInGame = newValue
+                        guard let bottle = mainBottle else { return }
+                        Task { await GameDefaults.applyPointerLock(settings, to: bottle) }
+                    }
+                ))
+                .labelsHidden()
+            }
+            if settings.holdMouseInGame, !accessibilityGranted {
+                // Stated rather than silently failing: a CGEventTap without
+                // Accessibility creates nothing and reports nothing, so the
+                // switch would look on and do nothing at all.
+                accessibilityNotice
+            }
+            // Read-only: the shortcut is registered with the system, and a
+            // picker for it is a bigger feature than the shortcut. Shown at all
+            // because a shortcut nobody knows about is not a feature.
+            captioned("settings.hotkey", "settings.hotkey.caption") {
+                Text(MouseReleaseHotkey.displayName)
+                    .font(.system(.body, design: .rounded).weight(.medium))
+                    .foregroundStyle(.secondary)
             }
             captioned("settings.retina", "settings.retina.caption") {
                 Toggle("", isOn: Binding(
@@ -156,6 +182,32 @@ struct GameSettingsView: View {
     }
 
     // MARK: - Helpers
+
+    /// Whether this app may create an event tap. Read live rather than cached:
+    /// the user grants it in System Settings while the app is running.
+    private var accessibilityGranted: Bool {
+        AXIsProcessTrusted()
+    }
+
+    /// What to do about it, with a button that opens the right pane.
+    private var accessibilityNotice: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("settings.holdMouse.needsAccessibility")
+                    .font(.caption)
+                Button("settings.holdMouse.openSettings") {
+                    let panel = "x-apple.systempreferences:com.apple.preference.security"
+                    if let url = URL(string: "\(panel)?Privacy_Accessibility") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .controlSize(.small)
+            }
+        }
+        .accessibilityIdentifier("settings.accessibilityNotice")
+    }
 
     private var gamesRoot: GamesRoot? {
         mainBottle.map { GamesRoot(bottleURL: $0.url) }

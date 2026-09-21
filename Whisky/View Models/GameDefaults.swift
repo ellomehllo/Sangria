@@ -41,20 +41,44 @@ enum GameDefaults {
     /// | MetalFX upscaling | `metalFX` |
     /// | Sync optimization | `enhancedSync` (`.msync` / `.none`) |
     /// | Limit background activity | `disableAppNap` |
-    /// | Start games fullscreen | `virtualDesktopEnabled` (inverted) |
+    /// | Run games in a window | `virtualDesktopEnabled` |
     ///
-    /// High-resolution mode is not here: it is a registry value, so it needs
-    /// ``applyRetinaMode(_:to:)`` and a running wineserver.
+    /// High-resolution mode and the pointer lock are not here: both are
+    /// registry values, so they need ``applyRetinaMode(_:to:)`` and
+    /// ``applyPointerLock(_:to:)`` and a running wineserver.
     static func apply(_ settings: AppSettings, to bottle: Bottle) {
         bottle.settings.metalHud = settings.showFPSOverlay
         bottle.settings.metalFX = settings.metalFXUpscaling
         bottle.settings.enhancedSync = settings.syncOptimization ? .msync : .none
         bottle.settings.disableAppNap = settings.limitBackgroundActivity
-        // A virtual desktop *is* the windowed mode: the game gets a window to
-        // draw into instead of changing the display mode. Inverted rather than
-        // absent because an old title that takes a Retina screen fullscreen can
-        // leave it black, and this is the switch that prevents it.
-        bottle.settings.virtualDesktopEnabled = !settings.startFullscreen
+        // A virtual desktop *is* the windowed mode: the game gets one real Mac
+        // window to draw into — title bar, green fullscreen button, ⌘W —
+        // instead of changing the display mode out from under everything.
+        //
+        // This is the bottle's default. A game with its own answer keeps it:
+        // `Wine.wantsOwnWindow` only falls back here when a program has stated
+        // no preference of its own.
+        bottle.settings.virtualDesktopEnabled = settings.windowedMode
+    }
+
+    /// How firmly Wine holds the mouse pointer inside a game.
+    ///
+    /// Also a registry value, and also only written when the user changes it —
+    /// it starts a wineserver.
+    static func applyPointerLock(_ settings: AppSettings, to bottle: Bottle) async {
+        do {
+            try await Wine.changeCursorClipping(
+                bottle: bottle,
+                // The switch is worded for what it does, not for how: "hold the
+                // mouse in the game" means give up the default confinement and
+                // use the event tap that survives a click.
+                useConfinement: !settings.holdMouseInGame
+            )
+        } catch {
+            Logger.wineKit.warning(
+                "Could not set the pointer lock: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     /// High-resolution mode, which lives in the prefix's registry.
@@ -95,8 +119,21 @@ enum GameDefaults {
         seed(AppSettings.Key.limitBackgroundActivity, bottle.settings.disableAppNap) {
             settings.limitBackgroundActivity = $0
         }
-        seed(AppSettings.Key.startFullscreen, !bottle.settings.virtualDesktopEnabled) {
-            settings.startFullscreen = $0
-        }
+        // `windowedMode` is deliberately not seeded. The bottle flag it maps
+        // onto was never read by anything until now, so its value records no
+        // decision anybody made — seeding from it would spread a dead default
+        // instead of adopting a real setting.
+    }
+
+    /// Brings the app's switches and the main bottle into agreement, once, at
+    /// startup.
+    ///
+    /// Seed first, then apply: seeding adopts the bottle's value for anything
+    /// the user has never set, so applying afterwards writes back what was
+    /// already there and changes nothing. The one setting that does move is
+    /// the one seeding skips — which is the point.
+    static func synchronise(_ settings: AppSettings, with bottle: Bottle) {
+        seedIfNeeded(settings, from: bottle)
+        apply(settings, to: bottle)
     }
 }
