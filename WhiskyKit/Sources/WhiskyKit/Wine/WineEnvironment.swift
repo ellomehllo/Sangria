@@ -175,6 +175,15 @@ extension Wine {
         let (resolved, provenance) = builder.resolve()
         var result = resolved
 
+        // A WINEDLLOVERRIDES the caller set (a program's own environment, a
+        // GameDB profile) used to be overwritten by the composed value, so the
+        // app silently ignored it. Merge it in as program-custom instead, the
+        // last word in the resolver, and drop it from the plain environment so
+        // only the composed string is exported.
+        if let userOverrides = result.removeValue(forKey: "WINEDLLOVERRIDES"), !userOverrides.isEmpty {
+            dllResolver.programCustom.append(contentsOf: DLLOverrideResolver.parse(userOverrides))
+        }
+
         // Compose WINEDLLOVERRIDES from DLLOverrideResolver (outside the builder)
         let (overrideString, _) = dllResolver.resolve()
         if !overrideString.isEmpty {

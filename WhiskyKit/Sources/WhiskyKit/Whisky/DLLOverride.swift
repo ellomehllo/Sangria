@@ -156,6 +156,26 @@ public struct DLLOverrideResolver: Sendable {
     /// null. Disabling it keeps the bottle on one implementation, so such a game
     /// falls back to D3D11 instead of half-landing on the other one. A bottle or
     /// program set to D3DMetal resets this to builtin and gets real DX12.
+    /// Parses a `WINEDLLOVERRIDES` string into entries.
+    ///
+    /// Wine's own format: entries separated by `;`, each `dll[,dll...]=mode`,
+    /// where mode is `n`, `b`, `n,b`, `b,n` or empty (disabled). An entry that
+    /// does not parse is skipped rather than failing the whole string, so one
+    /// typo in a user's value cannot cost them the rest of it.
+    public static func parse(_ value: String) -> [DLLOverrideEntry] {
+        value.split(separator: ";").flatMap { entry -> [DLLOverrideEntry] in
+            let halves = entry.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard halves.count == 2 else { return [] }
+            let mode = DLLOverrideMode(rawValue: halves[1].trimmingCharacters(in: .whitespaces))
+            guard let mode else { return [] }
+            return halves[0]
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .map { DLLOverrideEntry(dllName: $0, mode: mode) }
+        }
+    }
+
     public static var dxvkPreset: [DLLOverrideEntry] {
         [
             DLLOverrideEntry(dllName: "dxgi", mode: .nativeThenBuiltin),
