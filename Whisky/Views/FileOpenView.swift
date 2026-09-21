@@ -28,12 +28,19 @@ struct FileOpenView: View {
     var bottles: [Bottle]
     @Binding var toast: ToastData?
 
+    @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var bottleVM: BottleVM
     @State private var selection: URL = .init(filePath: "")
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
+                // Which prefix to use is exactly the question casual mode
+                // exists to stop asking. Without Developer Mode the sheet is
+                // never seen — `onAppear` runs the file in the main bottle and
+                // dismisses — so this is only ever drawn for someone who has
+                // several and knows why.
                 Picker("run.bottle", selection: $selection) {
                     ForEach(bottles, id: \.self) {
                         Text($0.settings.name)
@@ -69,11 +76,13 @@ struct FileOpenView: View {
                 return
             }
 
-            selection = bottles.first(where: { $0.url == currentBottle })?.url ?? bottles[0].url
+            selection = bottles.first(where: { $0.url == currentBottle })?.url
+                ?? bottleVM.mainBottleURL
+                ?? bottles[0].url
 
-            if bottles.count == 1 {
-                // If the user only has one bottle
-                // there's nothing for them to select
+            if bottles.count == 1 || !settings.developerMode {
+                // Nothing to select: either there is one bottle, or the person
+                // has not asked to know there is more than one.
                 run()
             }
         }

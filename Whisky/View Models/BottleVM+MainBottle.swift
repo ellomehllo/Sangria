@@ -57,6 +57,39 @@ extension BottleVM {
         return MainBottleResolver.choose(from: candidates)?.url
     }
 
+    /// Makes the one bottle casual mode needs, if there is not one already.
+    ///
+    /// A player who has just installed Sangria has nowhere to put a game, and
+    /// "create a bottle" is not a question they can be asked — it is the first
+    /// word of the vocabulary this whole change exists to remove. So the app
+    /// makes it, once, and never mentions it.
+    ///
+    /// Creates nothing when a bottle already exists, when the Wine runtime is
+    /// not installed yet (the setup sheet is showing, and creation would fail),
+    /// or when a creation is already in flight.
+    func ensureMainBottleExists() {
+        guard bottles.isEmpty, !isCreatingFirstBottle else { return }
+        guard WhiskyWineInstaller.isWhiskyWineInstalled() else { return }
+
+        isCreatingFirstBottle = true
+        _ = createNewBottle(
+            bottleName: String(localized: "bottle.default.name"),
+            winVersion: .win10,
+            bottleURL: BottleData.defaultBottleDir
+        )
+    }
+
+    /// Re-registers bottles that are on disk but missing from the list.
+    ///
+    /// In normal mode this happens without asking. The alert it replaces talks
+    /// about bottles and re-importing, and the honest answer for someone who
+    /// only wants to play a game is that their games came back — re-importing
+    /// only adds paths that already exist and changes nothing on disk.
+    func reimportOrphansSilently() {
+        guard !orphanedBottles.isEmpty else { return }
+        reimportOrphanedBottles()
+    }
+
     /// Gives the main bottle's shortcuts their path relative to `C:\Games`.
     ///
     /// Additive and idempotent, so running it on every load costs one pass

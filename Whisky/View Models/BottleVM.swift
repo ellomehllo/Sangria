@@ -101,6 +101,10 @@ final class BottleVM: ObservableObject {
     /// filesystem once per bottle, and this is read from view bodies.
     @Published private(set) var mainBottleURL: URL?
 
+    /// Guards ``ensureMainBottleExists()`` so a slow first creation cannot be
+    /// started twice by two passes of the same startup.
+    var isCreatingFirstBottle = false
+
     func loadBottles() {
         // Keep the live instance for any bottle that is mid-operation:
         // rebuilding it would reset inFlight and drop the guard that blocks

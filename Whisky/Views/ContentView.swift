@@ -85,10 +85,14 @@ struct ContentView: View {
         } message: { alert in
             Text(alert.message)
         }
+        // Both of these alerts report on the prefix list — what it is, where it
+        // was backed up to, which of them were found on disk. None of that is
+        // a question a player can answer, so in normal mode the recovery
+        // happens (see `reimportOrphansSilently`) and the report does not.
         .alert(
             "bottle.registry.corrupt.title",
             isPresented: Binding(
-                get: { corruptRegistryBackupURL != nil },
+                get: { settings.developerMode && corruptRegistryBackupURL != nil },
                 set: { if !$0 { corruptRegistryBackupURL = nil } }
             ),
             presenting: corruptRegistryBackupURL
@@ -103,7 +107,7 @@ struct ContentView: View {
         .alert(
             "bottle.orphaned.title",
             isPresented: Binding(
-                get: { !bottleVM.orphanedBottles.isEmpty },
+                get: { settings.developerMode && !bottleVM.orphanedBottles.isEmpty },
                 set: { if !$0 { bottleVM.orphanedBottles = [] } }
             )
         ) {
@@ -155,6 +159,12 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSetup) {
             SetupView(showSetup: $showSetup, firstTime: false)
+        }
+        .onChange(of: showSetup) { _, isShowing in
+            // Setup has just finished; if it installed the runtime there is now
+            // somewhere for the first game to go.
+            guard !isShowing, WhiskyWineInstaller.isWhiskyWineInstalled() else { return }
+            bottleVM.ensureMainBottleExists()
         }
         .sheet(item: $openedFileURL) { url in
             FileOpenView(
@@ -220,6 +230,12 @@ struct ContentView: View {
             // about — pairs with the corrupt-registry backup above: after a
             // registry reset the scan offers everything back (issue #145).
             bottleVM.scanForOrphanedBottles()
+            if !settings.developerMode {
+                // Recovered rather than reported: re-importing only adds back
+                // paths that already exist, and a player whose games vanished
+                // wants them back, not a dialogue about it.
+                bottleVM.reimportOrphansSilently()
+            }
 
             // Deliberately does not select a bottle. The library is the landing
             // screen, and restoring a prefix selection would put the plumbing in
@@ -232,6 +248,10 @@ struct ContentView: View {
 
             if !WhiskyWineInstaller.isWhiskyWineInstalled() {
                 showSetup = true
+            } else {
+                // Nothing to play into, and no way to ask for one without
+                // saying the word. The app makes it.
+                bottleVM.ensureMainBottleExists()
             }
             let task = Task.detached {
                 await WhiskyWineInstaller.shouldUpdateWhiskyWine()

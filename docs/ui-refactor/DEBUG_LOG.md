@@ -120,3 +120,34 @@ instead of at creating a bottle, and search says "games" not "programs". The
 "Bottle" sort option is filtered out unless Developer Mode is on.
 
 Build → **BUILD SUCCEEDED**. `swift test` → **406 tests in 50 suites passed**.
+
+## Slice 6 — the vocabulary sweep, and the bottle nobody asks for
+
+Audited every localized key reachable from a normal-mode view for the words
+bottle / winetricks / terminal / wine. 22 hits. Most were already behind
+Developer Mode; four were not:
+
+- `cleanup.zombies.toast` ("leftover Wine processes") → "leftover game
+  processes". Fires at startup in any mode.
+- `setup.uninstall.confirm.body` and `setup.telemetry.consent.help`, both in
+  the first-run setup flow, reworded off "bottles" and "first bottle created".
+- The corrupt-registry and orphaned-bottle alerts fire at startup regardless of
+  mode and ask a question no player can answer. In normal mode the orphan
+  recovery now just happens — re-importing adds back paths that already exist
+  and changes nothing on disk — and neither alert is shown.
+
+`settings.developerMode.warning` still names all three words. That is required:
+Advanced is meant to be the only place that does.
+
+**A gap the requirements imply but do not state:** normal mode has no way to
+create a bottle, and a fresh install has none — so there would be nowhere to
+put a game and no way to ask for one without saying the word. `BottleVM
+.ensureMainBottleExists()` makes exactly one, named "Games", once the runtime
+is installed. It creates nothing when a bottle already exists, and is guarded
+against being started twice by two passes of the same startup.
+
+`FileOpenView` (Finder's "Open With", and the `whisky://` scheme) asked which
+bottle to use. In normal mode it now runs in the main bottle and dismisses
+without ever being seen.
+
+Build → **BUILD SUCCEEDED**.

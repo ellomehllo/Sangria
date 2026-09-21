@@ -22221,6 +22221,23 @@
         }
       }
     },
+    "bottle.default.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Games"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Games"
+          }
+        }
+      }
+    },
     "bottle.orphan.stop" : {
       "localizations" : {
         "en" : {
@@ -27642,13 +27659,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cleaned up %lld leftover Wine processes"
+            "value" : "Cleaned up %lld leftover game processes"
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cleaned up %lld leftover Wine processes"
+            "value" : "Cleaned up %lld leftover game processes"
           }
         },
         "es" : {
@@ -90701,13 +90718,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional and off by default. When enabled, Sangria sends five anonymous events covering the first-run funnel: runtime install started, succeeded, or failed (with a coarse reason), first bottle created, and first program launch attempt. No personal data, file names, or identifiers tied to you are ever sent. You can change this anytime in Settings."
+            "value" : "Optional and off by default. When enabled, Sangria sends five anonymous events covering the first-run funnel: runtime install started, succeeded, or failed (with a coarse reason), first library set up, and first launch attempt. No personal data, file names, or identifiers tied to you are ever sent. You can change this anytime in Settings."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional and off by default. When enabled, Sangria sends five anonymous events covering the first-run funnel: runtime install started, succeeded, or failed (with a coarse reason), first bottle created, and first program launch attempt. No personal data, file names, or identifiers tied to you are ever sent. You can change this anytime in Settings."
+            "value" : "Optional and off by default. When enabled, Sangria sends five anonymous events covering the first-run funnel: runtime install started, succeeded, or failed (with a coarse reason), first library set up, and first launch attempt. No personal data, file names, or identifiers tied to you are ever sent. You can change this anytime in Settings."
           }
         },
         "es" : {
@@ -91146,13 +91163,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remove the Wine runtime only, or remove everything Sangria has stored — including all bottles?\n\nRemoving everything is permanent and cannot be undone."
+            "value" : "Remove the Wine runtime only, or remove everything Sangria has stored — including every game you have installed?\n\nRemoving everything is permanent and cannot be undone."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remove the Wine runtime only, or remove everything Sangria has stored — including all bottles?\n\nRemoving everything is permanent and cannot be undone."
+            "value" : "Remove the Wine runtime only, or remove everything Sangria has stored — including every game you have installed?\n\nRemoving everything is permanent and cannot be undone."
           }
         },
         "es" : {
