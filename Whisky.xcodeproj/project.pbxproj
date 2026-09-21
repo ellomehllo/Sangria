@@ -156,6 +156,8 @@
 		K1A2B3C4E5F61401A9B0C1D0 /* TroubleshootingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1A2B3C4E5F61401A9B0C1D1 /* TroubleshootingHistoryView.swift */; };
 		K1A2B3C4E5F61401A9B0C1D2 /* TroubleshootingTargetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1A2B3C4E5F61401A9B0C1D3 /* TroubleshootingTargetPicker.swift */; };
 		K1A2B3C4E5F61401A9B0C1D4 /* TroubleshootingEntryBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1A2B3C4E5F61401A9B0C1D5 /* TroubleshootingEntryBanner.swift */; };
+		3E2A7ADCA02B2CD34CCCA8AF /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657F728753D89748A0B262F9 /* AppSettings.swift */; };
+		5A382F1250768D75F172F117 /* GameDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -362,6 +364,8 @@
 		K1A2B3C4E5F61401A9B0C1D1 /* TroubleshootingHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingHistoryView.swift; sourceTree = "<group>"; };
 		K1A2B3C4E5F61401A9B0C1D3 /* TroubleshootingTargetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingTargetPicker.swift; sourceTree = "<group>"; };
 		K1A2B3C4E5F61401A9B0C1D5 /* TroubleshootingEntryBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingEntryBanner.swift; sourceTree = "<group>"; };
+		657F728753D89748A0B262F9 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDefaults.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -611,6 +615,8 @@
 		6E5197CE29D71FE800CF655E /* View Models */ = {
 			isa = PBXGroup;
 			children = (
+				E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */,
+				657F728753D89748A0B262F9 /* AppSettings.swift */,
 				6E50D98229CD6066008C39F6 /* BottleVM.swift */,
 				B1A2C3D4E5F60302A9B0C1D2 /* ProcessesViewModel.swift */,
 				D7B1C2E3F4A50801A9B0E1F2 /* LibraryModel.swift */,
@@ -1030,6 +1036,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A382F1250768D75F172F117 /* GameDefaults.swift in Sources */,
+				3E2A7ADCA02B2CD34CCCA8AF /* AppSettings.swift in Sources */,
 				D8FECA754748307BB596DD89 /* DXMTSettingsView.swift in Sources */,
 				3822ECB9912B0BFCA1AC72F8 /* ProgramGraphicsSection.swift in Sources */,
 				C1A8D3503A5FD171AB6FCD78 /* ProgramGraphicsDebugSection.swift in Sources */,

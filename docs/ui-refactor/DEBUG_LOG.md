@@ -64,3 +64,23 @@ reordered or rewritten, and an older build that reads only `url` still works.
    of the first assignment.
 
 `swift test` → **389 tests in 49 suites passed** (was 346).
+
+## Slice 4 — the app-wide settings store
+
+`AppSettings` (one `ObservableObject` over `UserDefaults`) and `GameDefaults`
+(the thin layer that writes those switches onto the main bottle).
+
+`@AppStorage` was rejected for this: it is a `DynamicProperty` and only works
+inside a `View`, and Developer Mode has to be readable from the sidebar, the
+menus and the launch path alike. One observable object gives every reader live
+updates without a restart, which is what "toggling updates the UI live" needs.
+
+Booleans are read with `object(forKey:) as? Bool ?? fallback` rather than
+`bool(forKey:)`, because the latter cannot tell "off" from "never set" and
+three of these default to on.
+
+**Failed first:** `WineRegistry` is internal to WhiskyKit; the public spelling
+is `Wine.changeRetinaMode`. `Logger.wineKit` also needed `import os.log`.
+Fixed both.
+
+Build → **BUILD SUCCEEDED**. No behaviour change yet: nothing reads these.
