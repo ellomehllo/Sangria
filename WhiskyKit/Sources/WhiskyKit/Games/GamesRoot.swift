@@ -183,6 +183,121 @@ public struct GamesRoot: Sendable, Equatable, Hashable {
         resolve(target) != nil
     }
 
+    // MARK: - Listing
+
+    /// What is in `directory`, ready to draw.
+    ///
+    /// Anything that does not survive ``resolve(_:)`` is left out — in
+    /// practice a symlink pointing outside the Games folder. It is hidden
+    /// rather than shown-and-disabled on purpose: a row the browser will not
+    /// open, will not launch and will not let you rename is not a row, and
+    /// showing it only invites someone to try.
+    ///
+    /// - Throws: whatever `FileManager` throws when `directory` cannot be read.
+    public func contents(of directory: URL) throws -> [GamesEntry] {
+        guard let resolved = resolve(directory) else { return [] }
+        let keys: [URLResourceKey] = [
+            .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey
+        ]
+        let urls = try FileManager.default.contentsOfDirectory(
+            at: resolved,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles]
+        )
+        return urls
+            .compactMap { child -> GamesEntry? in
+                guard let safe = resolve(child) else { return nil }
+                let values = try? safe.resourceValues(forKeys: Set(keys))
+                return GamesEntry(
+                    url: safe,
+                    isDirectory: values?.isDirectory ?? false,
+                    size: values?.fileSize.map(Int64.init),
+                    modified: values?.contentModificationDate
+                )
+            }
+            .sorted(by: GamesEntry.folderFirstByName)
+    }
+
+    /// The total size of everything under the root, for the Storage section.
+    ///
+    /// Walks the tree rather than asking for a directory's size, because a
+    /// directory's own `fileSize` is the size of its entry, not its contents.
+    public func usedBytes() -> Int64 {
+        guard let walker = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        var total: Int64 = 0
+        for case let child as URL in walker {
+            let values = try? child.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values?.isRegularFile == true, let size = values?.fileSize else { continue }
+            total += Int64(size)
+        }
+        return total
+    }
+
+    // MARK: - Changing things
+
+    /// Makes a folder inside `parent`.
+    ///
+    /// - Returns: the new folder, already resolved.
+    @discardableResult
+    public func createFolder(named name: String, in parent: URL) throws -> URL {
+        let target = try validated(name: name, in: parent)
+        guard !FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) else {
+            throw GamesRootError.alreadyExists(name)
+        }
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: false)
+        return target
+    }
+
+    /// Renames a file or folder in place.
+    @discardableResult
+    public func rename(_ item: URL, to name: String) throws -> URL {
+        guard let source = resolve(item), source != url else { throw GamesRootError.outsideRoot }
+        let target = try validated(name: name, in: source.deletingLastPathComponent())
+        guard target != source else { return source }
+        guard !FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) else {
+            throw GamesRootError.alreadyExists(name)
+        }
+        try FileManager.default.moveItem(at: source, to: target)
+        return target
+    }
+
+    /// Moves a file or folder to the Trash.
+    ///
+    /// The Trash rather than a delete, always: this browser is pointed at a
+    /// folder full of games somebody spent a night downloading, and nothing in
+    /// it should be unrecoverable by accident. The root itself cannot be
+    /// trashed.
+    public func moveToTrash(_ item: URL) throws {
+        guard let target = resolve(item), target != url else { throw GamesRootError.outsideRoot }
+        try FileManager.default.trashItem(at: target, resultingItemURL: nil)
+    }
+
+    /// A name the browser is willing to create, resolved against `parent`.
+    private func validated(name: String, in parent: URL) throws -> URL {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != ".", trimmed != ".." else {
+            throw GamesRootError.nameNotAllowed(name)
+        }
+        // A separator in a "name" is a path, and a path is how you leave. `:`
+        // is a separator to the Finder and a drive marker to Windows.
+        guard !trimmed.contains(where: { $0 == "/" || $0 == "\\" || $0 == ":" }) else {
+            throw GamesRootError.nameNotAllowed(name)
+        }
+        // A leading dot would make it invisible, and the listing skips hidden
+        // entries — the folder would be created and then never appear.
+        guard !trimmed.hasPrefix(".") else { throw GamesRootError.nameNotAllowed(name) }
+
+        guard let base = resolve(parent),
+              let target = resolve(base.appending(path: trimmed))
+        else { throw GamesRootError.outsideRoot }
+        return target
+    }
+
     // MARK: - Internals
 
     private func contains(_ resolved: URL) -> Bool {

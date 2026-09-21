@@ -21,79 +21,139 @@ import SemanticVersion
 import SwiftUI
 import WhiskyKit
 
+/// What the sidebar can be showing.
+///
+/// Three things in normal mode. A bottle is the fourth, and it exists only
+/// while Developer Mode is on — which is why this is an enum rather than the
+/// `URL?` it used to be: "no bottle selected" and "the Games folder" are
+/// different places, and one optional cannot hold both.
+enum SidebarItem: Hashable {
+    case library
+    case games
+    case settings
+    case bottle(URL)
+}
+
 // MARK: - Sidebar & Detail
 
 extension ContentView {
     var sidebar: some View {
         ScrollViewReader { proxy in
-            List(selection: $selected) {
+            List(selection: bottleSelection) {
                 Section {
-                    libraryRow
+                    fixedRow(
+                        .library, title: "library.title",
+                        systemImage: "square.grid.2x2", identifier: "sidebar.library"
+                    )
+                    fixedRow(
+                        .games, title: "games.title",
+                        systemImage: "folder", identifier: "sidebar.games"
+                    )
+                    fixedRow(
+                        .settings, title: "settings.title",
+                        systemImage: "gearshape", identifier: "sidebar.settings"
+                    )
                 }
-                // A bottle is a Wine prefix, so it belongs under a heading rather
-                // than being the whole sidebar. With one bottle this is the row
-                // that reaches its config; with several it is also the switcher.
-                Section("sidebar.bottles") {
-                    ForEach(sortedBottles) { bottle in
-                        Group {
-                            if bottle.inFlight {
-                                HStack {
-                                    Text(bottle.settings.name)
-                                    Spacer()
-                                    ProgressView().controlSize(.small)
-                                }
-                                .opacity(0.5)
-                            } else if !bottle.isAvailable {
-                                HStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.orange)
-                                        .font(.caption)
-                                    Text(bottle.settings.name)
-                                    Spacer()
-                                    Button {
-                                        Task { await bottle.remove(delete: false) }
-                                    } label: {
-                                        Image(systemName: "xmark.circle")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("button.removeFromList.help")
-                                }
-                                .opacity(0.6)
-                                .selectionDisabled(true)
-                            } else {
-                                BottleListEntry(
-                                    bottle: bottle,
-                                    selected: $selected,
-                                    refresh: $triggerRefresh,
-                                    toast: $toast
-                                )
-                                .accessibilityIdentifier("sidebar.bottle")
-                            }
+                // A bottle is a Wine prefix, which is an implementation detail
+                // of running a Windows program on a Mac. Nobody needs to learn
+                // it to play a game, so it is here only for someone who has
+                // said they want it.
+                if settings.developerMode {
+                    Section("sidebar.bottles") {
+                        ForEach(sortedBottles) { bottle in
+                            bottleRow(bottle)
+                                .tag(SidebarItem.bottle(bottle.url))
                         }
-                        .id(bottle.url)
-                        .listRowBackground(sidebarSelection(isSelected: selected == bottle.url))
-                        .foregroundStyle(selected == bottle.url
-                            ? AnyShapeStyle(.white)
-                            : AnyShapeStyle(.primary))
                     }
                 }
             }
             .animation(.default, value: bottleVM.bottles)
+            .animation(.default, value: settings.developerMode)
             .listStyle(.sidebar)
             .accessibilityIdentifier("bottleSidebar")
             // No search field here. The library has one, and two fields forty
             // points apart searching different things (bottles here, programs
             // there) is a choice nobody should have to make to find a game.
             .onChange(of: newlyCreatedBottleURL) { _, url in
+                guard let url else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    selected = url
+                    selection = .bottle(url)
                     withAnimation {
                         proxy.scrollTo(url, anchor: .center)
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func bottleRow(_ bottle: Bottle) -> some View {
+        Group {
+            if bottle.inFlight {
+                HStack {
+                    Text(bottle.settings.name)
+                    Spacer()
+                    ProgressView().controlSize(.small)
+                }
+                .opacity(0.5)
+            } else if !bottle.isAvailable {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text(bottle.settings.name)
+                    Spacer()
+                    Button {
+                        Task { await bottle.remove(delete: false) }
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("button.removeFromList.help")
+                }
+                .opacity(0.6)
+                .selectionDisabled(true)
+            } else {
+                BottleListEntry(
+                    bottle: bottle,
+                    selected: bottleSelection,
+                    refresh: $triggerRefresh,
+                    toast: $toast
+                )
+                .accessibilityIdentifier("sidebar.bottle")
+            }
+        }
+        .id(bottle.url)
+        .listRowBackground(sidebarSelection(isSelected: selection == .bottle(bottle.url)))
+        .foregroundStyle(selection == .bottle(bottle.url)
+            ? AnyShapeStyle(.white)
+            : AnyShapeStyle(.primary))
+    }
+
+    /// One of the three rows that are always there.
+    ///
+    /// Drawn as a button rather than a tagged row because these carry their
+    /// own selection colour (see ``sidebarSelection(isSelected:)``), and
+    /// because a `List`'s own selection is a single optional that cannot
+    /// distinguish "Games" from "no bottle".
+    private func fixedRow(
+        _ item: SidebarItem,
+        title: LocalizedStringKey,
+        systemImage: String,
+        identifier: String
+    ) -> some View {
+        Button {
+            selection = item
+        } label: {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selection == item ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+        .listRowBackground(sidebarSelection(isSelected: selection == item))
+        .accessibilityIdentifier(identifier)
     }
 
     /// The sidebar's selected-row fill, in the app's own blue.
@@ -107,55 +167,48 @@ extension ContentView {
             .fill(isSelected ? AnyShapeStyle(Color.brandBlue) : AnyShapeStyle(.clear))
     }
 
-    /// Selecting nothing means the library, not an empty pane: the library is
-    /// the home screen, and a person who has not picked a bottle has not made a
-    /// mistake.
-    var libraryRow: some View {
-        Button {
-            selected = nil
-        } label: {
-            Label("library.title", systemImage: "square.grid.2x2")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(selected == nil ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-        .listRowBackground(sidebarSelection(isSelected: selected == nil))
-        .accessibilityIdentifier("sidebar.library")
-    }
-
     @ViewBuilder
     var detail: some View {
-        if let bottle = selected {
-            if let bottle = bottleVM.bottles.first(where: { $0.url == bottle }) {
+        switch selection {
+        case .library:
+            LibraryView(selection: $selection, refresh: $triggerRefresh)
+        case .games:
+            GamesBrowserView(bottle: bottleVM.mainBottle)
+        case .settings:
+            GameSettingsView()
+        case let .bottle(url):
+            if let bottle = bottleVM.bottles.first(where: { $0.url == url }) {
                 BottleView(bottle: bottle)
                     .disabled(bottle.inFlight)
                     .id(bottle.url)
-            }
-        } else if bottleVM.countActive() > 0 {
-            LibraryView(selectedBottle: $selected, refresh: $triggerRefresh)
-        } else {
-            if bottleVM.bottles.isEmpty || bottleVM.countActive() == 0, bottlesLoaded {
-                VStack {
-                    Text("main.createFirst")
-                    Button {
-                        showBottleCreation.toggle()
-                    } label: {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("button.createBottle")
-                        }
-                        .padding(6)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.accentColor)
-                }
             }
         }
     }
 
     var sortedBottles: [Bottle] {
         bottleVM.bottles.sorted()
+    }
+
+    /// The selected bottle, when one is selected.
+    var selectedBottleURL: URL? {
+        if case let .bottle(url) = selection { return url }
+        return nil
+    }
+
+    /// A bottle-shaped view of the selection, for the pieces that only know
+    /// about bottles.
+    ///
+    /// Writing `nil` is ignored on purpose: a `List` clears its selection when
+    /// the highlighted row is something it does not own, and without this,
+    /// clicking "Games" would be undone a frame later by the list reporting
+    /// that no bottle is selected any more.
+    var bottleSelection: Binding<URL?> {
+        Binding(
+            get: { selectedBottleURL },
+            set: { newValue in
+                if let newValue { selection = .bottle(newValue) }
+            }
+        )
     }
 }
 
@@ -199,4 +252,5 @@ extension ContentView {
 #Preview {
     ContentView(showSetup: .constant(false))
         .environmentObject(BottleVM.shared)
+        .environmentObject(AppSettings.shared)
 }

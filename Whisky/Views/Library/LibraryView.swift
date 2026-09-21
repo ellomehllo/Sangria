@@ -31,7 +31,11 @@ import WhiskyKit
 /// programs and a future launcher needs no change here.
 struct LibraryView: View {
     @EnvironmentObject var bottleVM: BottleVM
-    @Binding var selectedBottle: URL?
+    @EnvironmentObject var settings: AppSettings
+    /// Where the sidebar is pointing. The library can send the user to the
+    /// Games folder, and — in Developer Mode — to a bottle, so it needs the
+    /// whole selection rather than a bottle-shaped slice of it.
+    @Binding var selection: SidebarItem
     /// Toggled by the toolbar's refresh button. Folded into the reload trigger
     /// because the bottle list is unchanged by a refresh, so watching only that
     /// left the button spinning without rebuilding anything.
@@ -41,6 +45,7 @@ struct LibraryView: View {
 
     @StateObject private var model = LibraryModel()
     @State private var search: String = ""
+    @State private var renaming: LibraryRow?
 
     private var bottles: [Bottle] { bottleVM.bottles.filter(\.isAvailable) }
 
@@ -78,6 +83,9 @@ struct LibraryView: View {
         .onDisappear {
             model.stopTracking()
         }
+        .sheet(item: $renaming) { row in
+            RenameView("library.card.rename", name: row.item.name) { rename(row, to: $0) }
+        }
         .alert(
             "library.launch.failed",
             isPresented: Binding(
@@ -95,7 +103,9 @@ struct LibraryView: View {
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Picker("library.sort", selection: $sort) {
-                    ForEach(LibrarySort.allCases) { option in
+                    // Sorting by bottle names one, so that option belongs to
+                    // Developer Mode like the rest of them.
+                    ForEach(LibrarySort.allCases.filter { $0 != .bottle || settings.developerMode }) { option in
                         Text(option.label).tag(option)
                     }
                 }
@@ -135,36 +145,60 @@ struct LibraryView: View {
 
     @ViewBuilder
     private func menu(for row: LibraryRow) -> some View {
-        Button("button.run") { model.launch(row, bottles: bottles) }
+        Button("button.play") { model.launch(row, bottles: bottles) }
         if model.state(for: row.item) == .running {
             Button("library.card.stop") { model.stop(row, bottles: bottles) }
         }
         Divider()
         if case let .program(url) = row.item.launch {
-            Button("button.showInFinder") {
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            }
-            Button("library.card.unpin", role: .destructive) { unpin(url, in: row.item.bottleURL) }
-            if let program = bottles.first(where: { $0.url == row.item.bottleURL })?
-                .programs.first(where: { $0.url == url }) {
-                UseD3DMetalToggle(program: program)
+            Button("library.card.rename") { renaming = row }
+            Button("library.card.remove", role: .destructive) { removeShortcut(url, in: row.item.bottleURL) }
+            if settings.developerMode {
+                Button("button.showInFinder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                }
+                if let program = bottles.first(where: { $0.url == row.item.bottleURL })?
+                    .programs.first(where: { $0.url == url }) {
+                    UseD3DMetalToggle(program: program)
+                }
             }
         }
         // Per-program settings live inside the bottle's own navigation stack,
         // which the library cannot push onto, so this is as close as the menu
-        // gets without a deep link into it.
-        Button("library.card.configure") {
-            selectedBottle = row.item.bottleURL
+        // gets without a deep link into it — and it names a bottle, so it is
+        // only offered to someone who has asked to see them.
+        if settings.developerMode {
+            Button("library.card.configure") {
+                selection = .bottle(row.item.bottleURL)
+            }
         }
     }
 
-    private func unpin(_ url: URL, in bottleURL: URL) {
+    /// Renames the shortcut. The file on disk is untouched: this is the label
+    /// on a card, not the name of a game.
+    private func rename(_ row: LibraryRow, to name: String) {
+        guard case let .program(url) = row.item.launch,
+              let bottle = bottles.first(where: { $0.url == row.item.bottleURL }),
+              let index = bottle.settings.pins.firstIndex(where: { $0.url == url })
+        else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        // No reload needed: `reloadTrigger` watches every pin's name.
+        bottle.settings.pins[index].name = trimmed
+    }
+
+    private func openGames() {
+        selection = .games
+    }
+
+    /// Removes the shortcut and nothing else. The game stays where it is.
+    private func removeShortcut(_ url: URL, in bottleURL: URL) {
         guard let bottle = bottles.first(where: { $0.url == bottleURL }) else { return }
         bottle.settings.pins.removeAll { $0.url == url }
         // Recorded here as well as in `pinned`'s setter: the library lists pins
-        // straight from bottle settings, so it can offer to unpin a program the
-        // bottle has never scanned and has no `Program` for. Without this the
-        // Start Menu scan would pin it again on the next visit.
+        // straight from bottle settings, so it can offer to remove one for a
+        // program the bottle has never scanned and has no `Program` for.
+        // Without this the Start Menu scan would pin it again on the next visit.
         if !bottle.settings.unpinnedPrograms.contains(url) {
             bottle.settings.unpinnedPrograms.append(url)
         }
@@ -179,9 +213,10 @@ struct LibraryView: View {
         } description: {
             Text(bottles.isEmpty ? "library.empty.noBottle" : "library.empty.noPrograms")
         } actions: {
-            if let first = bottles.first {
-                Button("library.empty.pinHint") { selectedBottle = first.url }
+            if !bottles.isEmpty {
+                Button("library.empty.openGames") { openGames() }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("library.openGames")
             }
         }
     }

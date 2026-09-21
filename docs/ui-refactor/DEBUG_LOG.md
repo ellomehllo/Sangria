@@ -84,3 +84,39 @@ is `Wine.changeRetinaMode`. `Logger.wineKit` also needed `import os.log`.
 Fixed both.
 
 Build → **BUILD SUCCEEDED**. No behaviour change yet: nothing reads these.
+
+## Slice 5 — the sidebar, the Games browser, and the Settings pane
+
+The big one. `SidebarItem` replaces the old `URL?` selection (an optional
+cannot hold both "no bottle" and "the Games folder"), `GamesBrowserView` and
+`GamesBrowserModel` give `C:\Games` a front end, `GameSettingsView` becomes the
+one settings surface for both the sidebar row and ⌘,, and the Wine-facing rows
+move into `DeveloperSettingsSection`.
+
+**Failed, and what it taught:**
+
+1. `WineRegistry` is internal to WhiskyKit — the public spelling is
+   `Wine.changeRetinaMode`.
+2. **The whole project stopped parsing**: `xcodebuild: error: Unable to read
+   project`. Adding `BottleVM+MainBottle.swift` wrote `path =
+   BottleVM+MainBottle.swift;` unquoted, and a pbxproj only leaves a value bare
+   when it matches `[A-Za-z0-9_./]`. Xcode itself writes
+   `path = "Bottle+Extensions.swift";`. Quoted it and taught the helper script
+   the rule.
+3. `mainBottleURL` is `private(set)`, so an extension *in another file* cannot
+   assign it. Rather than widening the setter, `chosenMainBottleURL()` now
+   returns a value and `loadBottles()` — the one place it can change — assigns
+   it.
+4. SwiftLint `--strict` failed the build twice on `BottleVM.swift`: 430 lines
+   (limit 400) and a 263-line type body (limit 250). Both were fixed by
+   splitting, not by silencing: the main-bottle choice went to
+   `BottleVM+MainBottle.swift` and the failure-report builder to
+   `BottleVM+CreationDiagnostics.swift`. Neither reads state the view model
+   owns.
+
+Wording swept for the banned words: `library.card.neverRun` now reads "Never
+played", `library.card.hint` "Plays this game", the empty state points at Games
+instead of at creating a bottle, and search says "games" not "programs". The
+"Bottle" sort option is filtered out unless Developer Mode is on.
+
+Build → **BUILD SUCCEEDED**. `swift test` → **406 tests in 50 suites passed**.

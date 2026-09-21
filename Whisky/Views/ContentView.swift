@@ -24,9 +24,12 @@ import WhiskyKit
 
 struct ContentView: View {
     @EnvironmentObject var bottleVM: BottleVM
+    @EnvironmentObject var settings: AppSettings
     @Binding var showSetup: Bool
 
-    @State var selected: URL?
+    /// Where the sidebar is pointing. The library is home, so that is where a
+    /// launch lands rather than on an empty pane.
+    @State var selection: SidebarItem = .library
     @State var showBottleCreation: Bool = false
     @State var bottlesLoaded: Bool = false
     @State var showBottleSelection: Bool = false
@@ -115,19 +118,23 @@ struct ContentView: View {
             ))
         }
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showBottleCreation.toggle()
-                } label: {
-                    Image(systemName: "plus")
-                        .help("button.createBottle")
+            // Creating a prefix is a Wine idea, so it is only offered to
+            // someone who has asked for Wine ideas.
+            if settings.developerMode {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showBottleCreation.toggle()
+                    } label: {
+                        Image(systemName: "plus")
+                            .help("button.createBottle")
+                    }
+                    .accessibilityIdentifier("toolbar.createBottle")
                 }
-                .accessibilityIdentifier("toolbar.createBottle")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     bottleVM.loadBottles()
-                    if let bottle = bottleVM.bottles.first(where: { $0.url == selected }) {
+                    if let bottle = bottleVM.bottles.first(where: { $0.url == selectedBottleURL }) {
                         Task { await bottle.updateInstalledPrograms() }
                     }
                     triggerRefresh.toggle()
@@ -152,12 +159,12 @@ struct ContentView: View {
         .sheet(item: $openedFileURL) { url in
             FileOpenView(
                 fileURL: url,
-                currentBottle: selected,
+                currentBottle: selectedBottleURL,
                 bottles: bottleVM.bottles,
                 toast: $toast
             )
         }
-        .onChange(of: selected) { oldValue, _ in
+        .onChange(of: selectedBottleURL) { oldValue, _ in
             // Check if previous bottle had running processes
             guard let oldURL = oldValue,
                   let oldBottle = bottleVM.bottles.first(where: { $0.url == oldURL })
@@ -182,13 +189,24 @@ struct ContentView: View {
             openedFileURL = url
         }
         .dropDestination(for: URL.self) { urls, _ in
-            // A Finder drop of anything the Run panel would accept opens the
-            // same run-this-file flow, wherever on the window it lands.
+            // Dropping a file from anywhere on the disk and having it run is a
+            // developer's shortcut: it names a bottle, it accepts .bat, and it
+            // reaches straight past the Games folder. In normal mode the Games
+            // browser is the way in, so the drop is simply not accepted.
+            guard settings.developerMode else { return false }
             let runnable = ["exe", "msi", "bat", "msix", "appx", "url"]
             guard let url = urls.first(where: { runnable.contains($0.pathExtension.lowercased()) })
             else { return false }
             openedFileURL = url
             return true
+        }
+        .onChange(of: settings.developerMode) { _, isOn in
+            // Turning it off while a bottle is on screen would leave the user
+            // looking at a pane the sidebar no longer offers, with no way back
+            // to it and no way to tell what happened.
+            if !isOn, case .bottle = selection {
+                selection = .library
+            }
         }
         .task {
             bottleVM.loadBottles()

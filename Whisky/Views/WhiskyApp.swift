@@ -40,6 +40,7 @@ struct WhiskyApp: App {
     /// Opt-in: show a menu-bar extra and keep Whisky running after the main
     /// window closes (see `AppDelegate.applicationShouldTerminateAfterLastWindowClosed`).
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = false
+    @StateObject private var settings = AppSettings.shared
     @State var showSetup: Bool = false
     @State private var showMigrate: Bool = false
     @State private var showDiagnosticsSheet: Bool = false
@@ -111,8 +112,10 @@ struct WhiskyApp: App {
                 // this the app wears whatever colour that is and never its own.
                 .tint(.brandBlue)
                 .environmentObject(BottleVM.shared)
+                .environmentObject(settings)
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
+                    settings.applyTheme()
                     Task.detached {
                         await WhiskyApp.deleteOldLogs()
                     }
@@ -188,50 +191,28 @@ struct WhiskyApp: App {
                 }
             }
             CommandGroup(replacing: .newItem) {}
+            // Everything in these three groups names a bottle, a prefix, a log
+            // or a shader cache. With Developer Mode off none of it exists —
+            // not in the menu, and not as a keyboard shortcut either, because
+            // a command that is not built has nothing to fire.
             CommandGroup(after: .newItem) {
-                Button("open.bottle") {
-                    let panel = NSOpenPanel()
-                    panel.canChooseFiles = false
-                    panel.canChooseDirectories = true
-                    panel.allowsMultipleSelection = false
-                    panel.canCreateDirectories = false
-                    panel.begin { result in
-                        if result == .OK {
-                            if let url = panel.urls.first {
-                                // Task inherits main actor context from SwiftUI commands builder
-                                Task {
-                                    BottleVM.shared.bottlesList.paths.append(url)
-                                    BottleVM.shared.loadBottles()
-                                }
-                            }
-                        }
-                    }
-                }
-                .keyboardShortcut("I", modifiers: [.command])
-                Button("Migrate from the Original Whisky…") {
-                    showMigrate = true
+                if settings.developerMode {
+                    developerFileCommands
                 }
             }
             CommandGroup(after: .importExport) {
-                Button("open.logs") {
-                    WhiskyApp.openLogsFolder()
-                }
-                .keyboardShortcut("L", modifiers: [.command])
-                Button("kill.bottles") {
-                    WhiskyApp.killBottles()
-                }
-                .keyboardShortcut("K", modifiers: [.command, .shift])
-                Button("wine.clearShaderCaches") {
-                    WhiskyApp.killBottles() // Better not make things more complicated for ourselves
-                    WhiskyApp.wipeShaderCaches()
+                if settings.developerMode {
+                    developerToolCommands
                 }
             }
             CommandGroup(before: .windowList) {
-                Button("Compatibility Notes") {
-                    openWindow(id: CompatibilityNotesView.windowID)
+                if settings.developerMode {
+                    Button("Compatibility Notes") {
+                        openWindow(id: CompatibilityNotesView.windowID)
+                    }
+                    .keyboardShortcut("C", modifiers: [.command, .shift])
+                    Divider()
                 }
-                .keyboardShortcut("C", modifiers: [.command, .shift])
-                Divider()
             }
             CommandGroup(replacing: .help) {
                 Button("help.github") {
@@ -244,15 +225,17 @@ struct WhiskyApp: App {
                         openURL(url)
                     }
                 }
-                Divider()
-                Button("Run Diagnostics\u{2026}") {
-                    showDiagnosticsSheet = true
+                if settings.developerMode {
+                    Divider()
+                    Button("Run Diagnostics\u{2026}") {
+                        showDiagnosticsSheet = true
+                    }
+                    .keyboardShortcut("D", modifiers: [.command, .shift])
+                    Button(String(localized: "troubleshooting.entry.helpMenu")) {
+                        showTroubleshootingPicker = true
+                    }
+                    .keyboardShortcut("T", modifiers: [.command, .shift])
                 }
-                .keyboardShortcut("D", modifiers: [.command, .shift])
-                Button(String(localized: "troubleshooting.entry.helpMenu")) {
-                    showTroubleshootingPicker = true
-                }
-                .keyboardShortcut("T", modifiers: [.command, .shift])
             }
         }
         Window("Compatibility Notes", id: CompatibilityNotesView.windowID) {
@@ -263,10 +246,66 @@ struct WhiskyApp: App {
         Settings {
             SettingsView()
                 .tint(.brandBlue)
+                .environmentObject(BottleVM.shared)
+                .environmentObject(settings)
         }
-        MenuBarExtra("Sangria", systemImage: "wineglass", isInserted: $showMenuBarExtra) {
+        // The menu-bar extra lists bottles, so it follows Developer Mode as
+        // well as its own switch.
+        MenuBarExtra(
+            "Sangria",
+            systemImage: "wineglass",
+            isInserted: Binding(
+                get: { showMenuBarExtra && settings.developerMode },
+                set: { showMenuBarExtra = $0 }
+            )
+        ) {
             WhiskyMenuBarView()
                 .environmentObject(BottleVM.shared)
+        }
+    }
+
+    /// File-menu entries that only mean something to someone who knows what a
+    /// Wine prefix is.
+    @ViewBuilder
+    private var developerFileCommands: some View {
+        Button("open.bottle") {
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.canCreateDirectories = false
+            panel.begin { result in
+                if result == .OK {
+                    if let url = panel.urls.first {
+                        // Task inherits main actor context from SwiftUI commands builder
+                        Task {
+                            BottleVM.shared.bottlesList.paths.append(url)
+                            BottleVM.shared.loadBottles()
+                        }
+                    }
+                }
+            }
+        }
+        .keyboardShortcut("I", modifiers: [.command])
+        Button("Migrate from the Original Whisky\u{2026}") {
+            showMigrate = true
+        }
+    }
+
+    /// Logs, stopping everything, and wiping shader caches.
+    @ViewBuilder
+    private var developerToolCommands: some View {
+        Button("open.logs") {
+            WhiskyApp.openLogsFolder()
+        }
+        .keyboardShortcut("L", modifiers: [.command])
+        Button("kill.bottles") {
+            WhiskyApp.killBottles()
+        }
+        .keyboardShortcut("K", modifiers: [.command, .shift])
+        Button("wine.clearShaderCaches") {
+            WhiskyApp.killBottles() // Better not make things more complicated for ourselves
+            WhiskyApp.wipeShaderCaches()
         }
     }
 

@@ -158,6 +158,13 @@
 		K1A2B3C4E5F61401A9B0C1D4 /* TroubleshootingEntryBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1A2B3C4E5F61401A9B0C1D5 /* TroubleshootingEntryBanner.swift */; };
 		3E2A7ADCA02B2CD34CCCA8AF /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657F728753D89748A0B262F9 /* AppSettings.swift */; };
 		5A382F1250768D75F172F117 /* GameDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */; };
+		8CE198ABD566052E805D43CD /* GamesBrowserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CEB3672C2BDD8516F670DC /* GamesBrowserModel.swift */; };
+		2471482F0095741C02BB6A4E /* GameLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB94381E4CF2B39CE0E9A15 /* GameLauncher.swift */; };
+		209824E5FB6061F151A221A1 /* GameSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0B182DF38925A6371C979D /* GameSettingsView.swift */; };
+		4FA35119A01B98CAEE22558E /* DeveloperSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5815774A75C20B16FE3FA1F /* DeveloperSettingsSection.swift */; };
+		8E13E8626AAF59A66614EE9F /* GamesBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75502AA5020EAB9B9CEA7D29 /* GamesBrowserView.swift */; };
+		B3D38C4209A4464835A1E82A /* BottleVM+MainBottle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F14836DDE38E9D92C3EE66 /* BottleVM+MainBottle.swift */; };
+		628A38297B1821ADEFFD848F /* BottleVM+CreationDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36054FEC8FD8B6FD5A297CA3 /* BottleVM+CreationDiagnostics.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -366,6 +373,13 @@
 		K1A2B3C4E5F61401A9B0C1D5 /* TroubleshootingEntryBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingEntryBanner.swift; sourceTree = "<group>"; };
 		657F728753D89748A0B262F9 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDefaults.swift; sourceTree = "<group>"; };
+		52CEB3672C2BDD8516F670DC /* GamesBrowserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamesBrowserModel.swift; sourceTree = "<group>"; };
+		4AB94381E4CF2B39CE0E9A15 /* GameLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLauncher.swift; sourceTree = "<group>"; };
+		FC0B182DF38925A6371C979D /* GameSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSettingsView.swift; sourceTree = "<group>"; };
+		A5815774A75C20B16FE3FA1F /* DeveloperSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperSettingsSection.swift; sourceTree = "<group>"; };
+		75502AA5020EAB9B9CEA7D29 /* GamesBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamesBrowserView.swift; sourceTree = "<group>"; };
+		80F14836DDE38E9D92C3EE66 /* BottleVM+MainBottle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BottleVM+MainBottle.swift"; sourceTree = "<group>"; };
+		36054FEC8FD8B6FD5A297CA3 /* BottleVM+CreationDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BottleVM+CreationDiagnostics.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -579,6 +593,8 @@
 		6E49E01F2AECB7D000009CAC /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				A5815774A75C20B16FE3FA1F /* DeveloperSettingsSection.swift */,
+				FC0B182DF38925A6371C979D /* GameSettingsView.swift */,
 				6E49E0202AECB7DB00009CAC /* SettingsView.swift */,
 				D4E5F6A7B8C90113A9B0C1F5 /* GPTKSettingsSection.swift */,
 			);
@@ -588,6 +604,7 @@
 		6E5197CD29D71FCD00CF655E /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1F42FF28DBF4309BBC55F139 /* Games */,
 				22134088203BA15CD96CFFBD /* Compatibility */,
 				C1A2B3C4E5F60601A9B0C1DA /* Audio */,
 				63FFDE822ADEFADF00178665 /* Common */,
@@ -615,6 +632,10 @@
 		6E5197CE29D71FE800CF655E /* View Models */ = {
 			isa = PBXGroup;
 			children = (
+				36054FEC8FD8B6FD5A297CA3 /* BottleVM+CreationDiagnostics.swift */,
+				80F14836DDE38E9D92C3EE66 /* BottleVM+MainBottle.swift */,
+				4AB94381E4CF2B39CE0E9A15 /* GameLauncher.swift */,
+				52CEB3672C2BDD8516F670DC /* GamesBrowserModel.swift */,
 				E4E1B0954F832F8F36D86C61 /* GameDefaults.swift */,
 				657F728753D89748A0B262F9 /* AppSettings.swift */,
 				6E50D98229CD6066008C39F6 /* BottleVM.swift */,
@@ -786,6 +807,14 @@
 				K1A2B3C4E5F61401A9B0C1D5 /* TroubleshootingEntryBanner.swift */,
 			);
 			path = Troubleshooting;
+			sourceTree = "<group>";
+		};
+		1F42FF28DBF4309BBC55F139 /* Games */ = {
+			isa = PBXGroup;
+			children = (
+				75502AA5020EAB9B9CEA7D29 /* GamesBrowserView.swift */,
+			);
+			path = Games;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1036,6 +1065,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				628A38297B1821ADEFFD848F /* BottleVM+CreationDiagnostics.swift in Sources */,
+				B3D38C4209A4464835A1E82A /* BottleVM+MainBottle.swift in Sources */,
+				8E13E8626AAF59A66614EE9F /* GamesBrowserView.swift in Sources */,
+				4FA35119A01B98CAEE22558E /* DeveloperSettingsSection.swift in Sources */,
+				209824E5FB6061F151A221A1 /* GameSettingsView.swift in Sources */,
+				2471482F0095741C02BB6A4E /* GameLauncher.swift in Sources */,
+				8CE198ABD566052E805D43CD /* GamesBrowserModel.swift in Sources */,
 				5A382F1250768D75F172F117 /* GameDefaults.swift in Sources */,
 				3E2A7ADCA02B2CD34CCCA8AF /* AppSettings.swift in Sources */,
 				D8FECA754748307BB596DD89 /* DXMTSettingsView.swift in Sources */,
