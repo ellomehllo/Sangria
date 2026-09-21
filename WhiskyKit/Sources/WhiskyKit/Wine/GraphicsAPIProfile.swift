@@ -147,13 +147,77 @@ public struct GraphicsAPIProfile: Equatable, Sendable {
     /// - Returns: `nil` when the file is not a readable PE image.
     public static func detect(executableURL: URL) -> GraphicsAPIProfile? {
         guard let peFile = try? PEFile(url: executableURL) else { return nil }
-        let agility = executableURL.deletingLastPathComponent()
-            .appending(path: "D3D12")
-            .appending(path: "D3D12Core.dll")
+        let folder = executableURL.deletingLastPathComponent()
+        let agility = folder.appending(path: "D3D12").appending(path: "D3D12Core.dll")
+        var apis = Set(peFile.importedDLLNames().compactMap(GraphicsAPI.from(dllName:)))
+        // Only when the import table said nothing at all. A program that names
+        // its API in the import table has already answered the question, and
+        // reading every DLL beside it to ask again would cost that on every
+        // program scan for nothing.
+        if apis.isEmpty {
+            apis = dynamicallyLoadedAPIs(executableURL: executableURL, folder: folder)
+        }
         return GraphicsAPIProfile(
-            importedDLLs: peFile.importedDLLNames(),
+            importedAPIs: apis,
             hasAgilitySDK: FileManager.default.fileExists(atPath: agility.path(percentEncoded: false))
         )
+    }
+
+    /// APIs an executable names but does not import.
+    ///
+    /// A program that calls `LoadLibrary("d3d9.dll")` has no import-table entry
+    /// for it, so the import scan alone reports "Not detected" and every
+    /// decision downstream is made blind — which is how a Direct3D 9 game ends
+    /// up routed to a backend that starts at Direct3D 10. The DLL name still has
+    /// to be in the image as a string to be passed to `LoadLibrary`, so looking
+    /// for it recovers exactly the case the import table misses.
+    ///
+    /// Engines split across DLLs name the API in an engine core or renderer
+    /// plugin rather than in the executable — Euro Truck Simulator names it in
+    /// `p3core.dll` beside the game, and not in `game.exe` at all — so the
+    /// executable's own folder and any `lib` or `bin` beside it are scanned too.
+    /// Only Direct3D is looked for: `opengl32` and `vulkan-1` appear in far too
+    /// many unrelated strings to be evidence of anything.
+    static func dynamicallyLoadedAPIs(executableURL: URL, folder: URL) -> Set<GraphicsAPI> {
+        let searched: [GraphicsAPI] = [.d3d12, .d3d11, .d3d10, .d3d9, .d3d8, .directDraw]
+        var candidates = [executableURL]
+        for directory in [folder, folder.appending(path: "lib"), folder.appending(path: "bin")] {
+            let contents = (try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.fileSizeKey]
+            )) ?? []
+            candidates += contents.filter { $0.pathExtension.lowercased() == "dll" }
+        }
+
+        var found: Set<GraphicsAPI> = []
+        for url in candidates.prefix(32) {
+            // A game's data blobs live beside its code and run to hundreds of
+            // megabytes; searching those for a DLL name would stall a scan of
+            // the whole prefix. Code is small.
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            guard size <= 32 * 1024 * 1024 else { continue }
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
+            for api in searched where !found.contains(api) {
+                if api.dllNames.contains(where: { data.containsASCII($0) }) {
+                    found.insert(api)
+                }
+            }
+            // A modern Direct3D settles it; nothing older changes the routing.
+            if found.contains(.d3d12) || found.contains(.d3d11) { break }
+        }
+        return found
+    }
+}
+
+private extension Data {
+    /// Whether this image contains `needle` as ASCII, case-insensitively.
+    ///
+    /// PE images store these names as plain ASCII in either case, and some
+    /// engines store them UTF-16, so both encodings are checked.
+    func containsASCII(_ needle: String) -> Bool {
+        let lower = Data(needle.lowercased().utf8)
+        let upper = Data(needle.uppercased().utf8)
+        let wide = Data(needle.lowercased().utf16.flatMap { [UInt8($0 & 0xFF), UInt8($0 >> 8)] })
+        return range(of: lower) != nil || range(of: upper) != nil || range(of: wide) != nil
     }
 }
 

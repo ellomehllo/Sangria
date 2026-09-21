@@ -111,9 +111,22 @@ public enum GraphicsBackendResolver {
                 )
             }
         }
-        if let api, api.isLegacyDirect3DOnly, dxvkHasD3D9 {
+        if let api, api.isLegacyDirect3DOnly {
             let name = api.primaryAPI?.displayName ?? "Legacy Direct3D"
-            return (.dxvk, "\(name) title; DXMT only translates Direct3D 10/11")
+            if dxvkHasD3D9 {
+                return (.dxvk, "\(name) title; DXMT only translates Direct3D 10/11")
+            }
+            // Nothing else here reaches below Direct3D 10: DXMT and D3DMetal
+            // both start at 10, and this runtime's DXVK ships no d3d9. Wine's
+            // own d3d9 is all that is left, and naming WineD3D is what puts it
+            // on a path that works — every other backend leaves WINED3DMETAL
+            // unset, so wined3d takes its Metal route, which cannot enumerate an
+            // adapter for Direct3D 9 and hands the game a null device it does
+            // not check before dereferencing.
+            return (
+                .wined3d,
+                "\(name) title; no backend here translates it, so Wine's own Direct3D 9 runs it"
+            )
         }
         // The same gate the backend picker applies, not the version record
         // alone: a version-only check lets auto promise DXMT on a runtime

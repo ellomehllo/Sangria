@@ -71,6 +71,13 @@ public struct BottleInfo: Codable, Equatable {
     var pins: [PinnedProgram] = []
     /// URLs of programs that should be hidden from the program list.
     var blocklist: [URL] = []
+    /// Programs the user unpinned by hand.
+    ///
+    /// The Start Menu scan pins everything it finds every time a bottle screen
+    /// opens and after every launch, so without a record of the user's decision
+    /// an unpin was undone within seconds and the pin looked unremovable.
+    /// Pinning again clears the entry, so this never blocks a deliberate pin.
+    var unpinnedPrograms: [URL] = []
 
     /// Creates a new BottleInfo with default values.
     public init() {}
@@ -80,6 +87,7 @@ public struct BottleInfo: Codable, Equatable {
         self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Bottle"
         self.pins = try container.decodeIfPresent([PinnedProgram].self, forKey: .pins) ?? []
         self.blocklist = try container.decodeIfPresent([URL].self, forKey: .blocklist) ?? []
+        self.unpinnedPrograms = try container.decodeIfPresent([URL].self, forKey: .unpinnedPrograms) ?? []
     }
 }
 
@@ -293,6 +301,26 @@ public struct BottleSettings: Codable, Equatable {
     public var blocklist: [URL] {
         get { info.blocklist }
         set { info.blocklist = newValue }
+    }
+
+    /// Programs the user unpinned by hand, which the Start Menu scan must not
+    /// pin again behind their back.
+    public var unpinnedPrograms: [URL] {
+        get { info.unpinnedPrograms }
+        set { info.unpinnedPrograms = newValue }
+    }
+
+    /// Which of a Start Menu scan's findings should actually be pinned.
+    ///
+    /// The scan runs every time a bottle screen opens and after every launch,
+    /// so this is asked constantly and has to be idempotent. It leaves out
+    /// anything already pinned, and anything the user unpinned — without the
+    /// second rule an unpin was reversed within seconds and the pin could not
+    /// be removed at all.
+    public func startMenuPinsToAdd(candidates: [URL]) -> [URL] {
+        let refused = Set(unpinnedPrograms)
+        let already = Set(pins.compactMap(\.url))
+        return candidates.filter { !refused.contains($0) && !already.contains($0) }
     }
 
     /// The synchronization mode for Wine.

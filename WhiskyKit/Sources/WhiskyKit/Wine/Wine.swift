@@ -347,6 +347,10 @@ public class Wine {
             graphicsDebugVariables: debugEnvironment.variables
         )
 
+        applyLegacyDirect3DPath(
+            &wineEnvironment, apiProfile: apiProfile, effectiveBackend: effectiveBackend
+        )
+
         try await applyDLLOverrides(
             for: url, bottle: bottle,
             wineEnvironment: &wineEnvironment,
@@ -430,6 +434,34 @@ public class Wine {
     }
 
     // swiftlint:enable function_body_length
+
+    /// Puts a Direct3D 9-and-older program on the Direct3D path that works,
+    /// whatever backend was named.
+    ///
+    /// Nothing in this runtime translates Direct3D 9: DXMT and D3DMetal both
+    /// start at Direct3D 10 and this DXVK build ships no `d3d9.dll`, so such a
+    /// program always ends up on Wine's own `d3d9` and `wined3d` — the backend
+    /// picker only decides which DLLs sit beside it. But `WINED3DMETAL=0` was
+    /// only set when WineD3D was the *named* backend, so on any other choice
+    /// wined3d took its Metal route, where it cannot enumerate an adapter for
+    /// Direct3D 9. Euro Truck Simulator got a null device back and faulted in
+    /// its own renderer; its launcher could not find a device at all.
+    ///
+    /// Setting the variable here costs nothing on a program that never loads
+    /// `d3d9`, and it is what makes an old game work on a bottle configured for
+    /// a modern one without anybody having to know why.
+    static func applyLegacyDirect3DPath(
+        _ environment: inout [String: String],
+        apiProfile: GraphicsAPIProfile?,
+        effectiveBackend: GraphicsBackend
+    ) {
+        guard let apiProfile, apiProfile.isLegacyDirect3DOnly else { return }
+        guard effectiveBackend != .wined3d else { return }   // already set by the backend layer
+        environment[Self.wineD3DMetalVariable] = "0"
+    }
+
+    /// Wine's switch between wined3d's Metal and OpenGL back ends.
+    static let wineD3DMetalVariable = "WINED3DMETAL"
 
     /// Which backend launching `url` would use, why, what the executable says
     /// about its graphics API, and whether the two fit.

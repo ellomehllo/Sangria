@@ -85,9 +85,25 @@ struct DXMTBackendPolicyTests {
         #expect(resolve(api: mixed, d3dMetal: false) == .dxmt)
     }
 
-    @Test("Without a DXVK d3d9, Direct3D 9 titles are not steered: every backend lands on WineD3D")
+    // This used to expect .dxmt, on the reasoning that Direct3D 9 falls through
+    // to wined3d at runtime whatever the backend says, so the choice did not
+    // matter. It does. Naming a backend that cannot translate Direct3D 9 leaves
+    // WINED3DMETAL unset, wined3d takes its Metal route, and it cannot
+    // enumerate an adapter there — Euro Truck Simulator got a null device back
+    // and faulted inside its own renderer. WineD3D is the only choice that
+    // sets WINED3DMETAL=0 and puts Direct3D 9 on the path that works.
+    @Test("Without a DXVK d3d9, Direct3D 9 titles resolve to WineD3D, not to a backend that cannot run them")
     func d3d9WithoutDXVKD3D9() {
-        #expect(resolve(api: d3d9, d3dMetal: true, dxvkD3D9: false) == .dxmt)
+        #expect(resolve(api: d3d9, d3dMetal: true, dxvkD3D9: false) == .wined3d)
+        #expect(resolve(api: d3d9, d3dMetal: false, dxvkD3D9: false) == .wined3d)
+    }
+
+    @Test("Direct3D 8 and DirectDraw take the same route as Direct3D 9")
+    func olderLegacyAPIsAlsoGoToWineD3D() {
+        let d3d8 = GraphicsAPIProfile(importedAPIs: [.d3d8])
+        let ddraw = GraphicsAPIProfile(importedAPIs: [.directDraw])
+        #expect(resolve(api: d3d8, d3dMetal: true, dxvkD3D9: false) == .wined3d)
+        #expect(resolve(api: ddraw, d3dMetal: true, dxvkD3D9: false) == .wined3d)
     }
 
     @Test("Launchers resolve to DXVK regardless of API")

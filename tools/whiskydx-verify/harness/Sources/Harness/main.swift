@@ -180,6 +180,24 @@ func run(_ args: [String]) async throws {
         }
         program.settings.overrides = overrides
     }
+    // --dll d3d11=n,b (repeatable): per-program DLL overrides, the same field
+    // the app's UI writes. Needed because constructWineEnvironment composes
+    // WINEDLLOVERRIDES itself and overwrites any value passed as --env.
+    var dllOverrides: [DLLOverrideEntry] = []
+    for (index, arg) in args.enumerated() where arg == "--dll" && index + 1 < args.count {
+        let parts = args[index + 1].split(separator: "=", maxSplits: 1).map(String.init)
+        guard parts.count == 2, let mode = DLLOverrideMode(rawValue: parts[1]) else {
+            fail("--dll NAME=n,b|n|b|b,n|'' (empty disables)")
+        }
+        dllOverrides.append(DLLOverrideEntry(dllName: parts[0], mode: mode))
+    }
+    if !dllOverrides.isEmpty {
+        var overrides = program.settings.overrides ?? ProgramOverrides()
+        overrides.dllOverrides = dllOverrides
+        program.settings.overrides = overrides
+        print("dll overrides: " + dllOverrides.map { "\($0.dllName)=\($0.mode.rawValue)" }.joined(separator: " "))
+    }
+
     var debug = program.settings.effectiveGraphicsDebug
     debug.metalAPIValidation = flag("--api-validation", in: args)
     debug.metalShaderValidation = flag("--shader-validation", in: args)

@@ -113,12 +113,23 @@ public final class Program: ObservableObject, Equatable, Hashable, Identifiable 
     @Published public var pinned: Bool {
         didSet {
             if pinned {
-                bottle.settings.pins.append(PinnedProgram(
-                    name: name.replacingOccurrences(of: ".exe", with: ""),
-                    url: url
-                ))
+                // Appending unconditionally would duplicate a pin every time
+                // the Start Menu scan re-asserts one it already made.
+                if !bottle.settings.pins.contains(where: { $0.url == url }) {
+                    bottle.settings.pins.append(PinnedProgram(
+                        name: name.replacingOccurrences(of: ".exe", with: ""),
+                        url: url
+                    ))
+                }
+                bottle.settings.unpinnedPrograms.removeAll { $0 == url }
             } else {
-                bottle.settings.pins.removeAll(where: { $0.url == url })
+                bottle.settings.pins.removeAll { $0.url == url }
+                // Remembered so the Start Menu scan does not pin it straight
+                // back on the next visit, which is what made unpinning look
+                // like it did nothing.
+                if !bottle.settings.unpinnedPrograms.contains(url) {
+                    bottle.settings.unpinnedPrograms.append(url)
+                }
             }
         }
     }
