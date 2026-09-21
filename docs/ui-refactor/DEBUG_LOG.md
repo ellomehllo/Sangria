@@ -151,3 +151,39 @@ bottle to use. In normal mode it now runs in the main bottle and dismisses
 without ever being seen.
 
 Build → **BUILD SUCCEEDED**.
+
+## Slice 7 — verification, and what could not be verified
+
+**A folder row now opens on one click.** Found while driving the UI: a folder
+row draws a chevron, and a disclosure arrow that does nothing until you
+double-click it is a lie about what the row is. Files keep the double-click —
+starting a game takes over the screen for an hour and should not happen by
+accident.
+
+**The blocker.** `xcodebuild test` cannot run here: the runner fails with
+"Timed out while enabling automation mode", and macOS puts up a password
+prompt — *"XCTest is trying to Enable UI Automation"* — that only the user can
+answer. I cancelled it rather than typing anything into it.
+
+Screenshot-driven verification worked instead, with two lessons worth keeping:
+
+- The process is named **Whisky**, not Sangria (the bundle's display name
+  differs from its executable). `tell process "Sangria"` fails with "Invalid
+  index", which looks exactly like a flaky accessibility bridge and is not.
+- The window only appears in the accessibility tree while the app is
+  **frontmost**. Two of my clicks went into other applications' windows before
+  I added a guard that refuses to click or screenshot unless Sangria is
+  genuinely in front. Anything that injects input needs that check first.
+
+SwiftUI's `.accessibilityIdentifier` is not exposed through the System Events
+bridge on macOS 26 — 78 elements, not one identifier — so precise element
+targeting really does need XCUITest.
+
+**The launch regression was checked without the GUI**, through the app's own
+`whisky://launch?pin=…` scheme, which calls the same
+`Program.launchWithUserMode` the Play button does. Euro Truck Simulator
+started and drew its loading screen; every Wine process was closed afterwards.
+
+`swift test` → **406 tests in 50 suites passed**. Build → **BUILD SUCCEEDED**.
+`build-for-testing` → **TEST BUILD SUCCEEDED** (the UI tests compile; they have
+not been run).

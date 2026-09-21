@@ -138,14 +138,37 @@ struct GamesBrowserView: View {
     private var list: some View {
         List {
             ForEach(model.entries) { entry in
-                GamesRow(entry: entry, isStarting: model.isStarting(entry))
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) { activate(entry) }
+                row(for: entry)
                     .contextMenu { menu(for: entry) }
             }
         }
         .listStyle(.inset)
         .accessibilityIdentifier("games.list")
+    }
+
+    /// A folder opens on one click; a game needs two.
+    ///
+    /// The asymmetry is deliberate. A folder row already draws a chevron, and a
+    /// disclosure arrow that does nothing until you double-click it is a lie
+    /// about what the row is. Starting a game, on the other hand, takes over
+    /// the screen for the next hour, so it keeps the double-click that stops it
+    /// happening by accident.
+    @ViewBuilder
+    private func row(for entry: GamesEntry) -> some View {
+        if entry.isDirectory {
+            Button {
+                model.open(entry)
+            } label: {
+                GamesRow(entry: entry, isStarting: false)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            GamesRow(entry: entry, isStarting: model.isStarting(entry))
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) { activate(entry) }
+        }
     }
 
     @ViewBuilder

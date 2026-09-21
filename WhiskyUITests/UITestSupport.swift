@@ -23,10 +23,25 @@ import XCTest
 class WhiskyUITestCase: XCTestCase {
     var app: XCUIApplication!
 
+    /// Whether the app under test should start with Developer Mode on.
+    ///
+    /// Most of this suite is about bottles, terminals and winetricks, none of
+    /// which exist in normal mode any more, so it asks for Developer Mode
+    /// rather than quietly skipping when it cannot find a sidebar row.
+    /// `CasualModeUITests` overrides this to check what a player actually sees.
+    var developerMode: Bool { true }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        // `-key value` launch arguments land in UserDefaults' argument domain,
+        // which outranks anything written to disk — so a test's mode is its own
+        // and neither depends on nor disturbs the developer's settings. The
+        // value has to be 1/0 rather than YES/NO: the argument domain parses it
+        // as a property list, and "YES" arrives as a string that will not cast
+        // to Bool.
         app.launchArguments += ["-WhiskyUITestMode", "1"]
+        app.launchArguments += ["-developerMode", developerMode ? "1" : "0"]
         app.launch()
         // Frontmost before interacting: a non-key window makes toolbar elements
         // unhittable — the usual source of "element missing" flakiness.
