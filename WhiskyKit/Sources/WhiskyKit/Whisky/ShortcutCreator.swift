@@ -150,18 +150,27 @@ public extension ShortcutCreator {
             "run \(shellQuoted(bottleName)) \(shellQuoted(windowsPath))"
         }
 
+        // Where this copy of the app actually is, rather than a guess at its
+        // filename. The app used to be Whisky.app and is now Sangria.app, and
+        // a shortcut written by one should not stop working under the other —
+        // nor should either be hard-coded again. The Spotlight lookup stays as
+        // the fallback for a shortcut whose app has since moved.
+        let bundledCmd = Bundle.main.bundleURL
+            .appending(path: "Contents/Resources/WhiskyCmd")
+            .path(percentEncoded: false)
+
         return """
-        WHISKY_CMD="/Applications/Whisky.app/Contents/Resources/WhiskyCmd"
-        if [ ! -x "$WHISKY_CMD" ]; then
-            WHISKY_APP="$(mdfind "kMDItemCFBundleIdentifier == '\(Bundle
+        SANGRIA_CMD=\(shellQuoted(bundledCmd))
+        if [ ! -x "$SANGRIA_CMD" ]; then
+            SANGRIA_APP="$(mdfind "kMDItemCFBundleIdentifier == '\(Bundle
             .whiskyBundleIdentifier)'" 2>/dev/null | head -n 1)"
-            WHISKY_CMD="$WHISKY_APP/Contents/Resources/WhiskyCmd"
+            SANGRIA_CMD="$SANGRIA_APP/Contents/Resources/WhiskyCmd"
         fi
-        if [ ! -x "$WHISKY_CMD" ]; then
-            osascript -e 'display alert "Whisky not found" message "Install Whisky to use this shortcut."'
+        if [ ! -x "$SANGRIA_CMD" ]; then
+            osascript -e 'display alert "Sangria not found" message "Install Sangria to use this shortcut."'
             exit 1
         fi
-        exec "$WHISKY_CMD" \(invocation)
+        exec "$SANGRIA_CMD" \(invocation)
         """
     }
 

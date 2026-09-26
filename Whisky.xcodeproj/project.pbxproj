@@ -262,7 +262,7 @@
 		6E355E5729D78249002D83BE /* ConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigView.swift; sourceTree = "<group>"; };
 		6E355E5929D782B2002D83BE /* ProgramsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramsView.swift; sourceTree = "<group>"; };
 		6E355E5D29D7D85D002D83BE /* ProgramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramView.swift; sourceTree = "<group>"; };
-		6E40495229CCA19C006E3F1B /* Whisky.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Whisky.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E40495229CCA19C006E3F1B /* Sangria.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sangria.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E40495529CCA19C006E3F1B /* WhiskyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiskyApp.swift; sourceTree = "<group>"; };
 		6E40495729CCA19C006E3F1B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C1A2B3C4E5F60601A9B0A3D9 /* ContentView+Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Sidebar.swift"; sourceTree = "<group>"; };
@@ -560,7 +560,7 @@
 		6E40495329CCA19C006E3F1B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6E40495229CCA19C006E3F1B /* Whisky.app */,
+				6E40495229CCA19C006E3F1B /* Sangria.app */,
 				6E70A4982A9A2197007799E9 /* WhiskyCmd */,
 				6EFDF64A2AAE2DA800EF622F /* WhiskyThumbnail.appex */,
 				1C3B8A506869998F3FE0FC74 /* WhiskyUITests.xctest */,
@@ -852,7 +852,7 @@
 				8C2AEFC72AED79B700CB568F /* WhiskyKit */,
 			);
 			productName = Whisky;
-			productReference = 6E40495229CCA19C006E3F1B /* Whisky.app */;
+			productReference = 6E40495229CCA19C006E3F1B /* Sangria.app */;
 			productType = "com.apple.product-type.application";
 		};
 		6E70A4972A9A2197007799E9 /* WhiskyCmd */ = {
@@ -1393,7 +1393,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Sangria;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1432,7 +1432,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 3.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = local.bluevsh.WhiskyDX;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Sangria;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;

@@ -69,8 +69,8 @@ is fine.
 
 Inside that folder, double-click **`Whisky.xcodeproj`**. Xcode will open.
 
-> **Why does it say Whisky?** Sangria is built on top of an open-source project called Whisky.
-> The internal filenames still say Whisky; the app you get is Sangria. Nothing is wrong.
+> **Why does it say Whisky?** Sangria is built on top of an open-source project called Whisky, and
+> the project file still carries that name. The app you get is Sangria. Nothing is wrong.
 
 ### Step 4 — Press Play
 
@@ -83,8 +83,8 @@ Xcode will spend a few minutes building. When it finishes, **Sangria opens by it
 So you can open it normally from now on:
 
 1. In Xcode's left sidebar, scroll to the bottom and open the **Products** folder.
-2. Right-click **`Whisky.app`** → **Show in Finder**.
-3. Drag it into your **Applications** folder, then rename it to **Sangria** if you like.
+2. Right-click **`Sangria.app`** → **Show in Finder**.
+3. Drag it into your **Applications** folder.
 
 From now on, just open it from Applications or Spotlight.
 
@@ -168,8 +168,8 @@ open build/DerivedData/Build/Products/Debug/Whisky.app
 
 Tests: `swift test` from `WhiskyKit/`.
 
-The source keeps upstream's `Whisky` names and its bundle id, so bottles and settings carry over
-from the fork it came from. The built bundle is `Whisky.app` and displays as Sangria.
+The source keeps upstream's `Whisky` target and file names, and the bundle id, so bottles and
+settings carry over from the fork it came from. The built product is `Sangria.app`.
 
 **Graphics backends.** D3DMetal handles Direct3D 12, DXMT takes Direct3D 10/11 straight to Metal,
 DXVK covers launchers, and Wine's own WineD3D handles Direct3D 9 — nothing else on this stack

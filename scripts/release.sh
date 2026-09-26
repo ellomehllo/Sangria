@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License along with Whisky.
 # If not, see https://www.gnu.org/licenses/.
 #
-# Builds, signs, notarizes, staples, and packages Whisky.app as a DMG.
+# Builds, signs, notarizes, staples, and packages Sangria.app as a DMG.
 #
 # Prerequisites:
 #   - Developer ID Application certificate installed in Keychain
@@ -57,8 +57,8 @@ xcodebuild \
     -exportOptionsPlist scripts/exportOptions.plist \
     -allowProvisioningUpdates
 
-APP_PATH="$EXPORT_PATH/Whisky.app"
-[ -d "$APP_PATH" ] || { echo "Whisky.app not found at $APP_PATH"; exit 1; }
+APP_PATH="$EXPORT_PATH/Sangria.app"
+[ -d "$APP_PATH" ] || { echo "Sangria.app not found at $APP_PATH"; exit 1; }
 
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
