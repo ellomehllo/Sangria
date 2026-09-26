@@ -1380,10 +1380,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Whisky/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sangria;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Whisky needs to access Terminal to launcher processes in a Terminal window.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Sangria needs to access Terminal to launch processes in a Terminal window.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "A Windows application is trying to access the camera.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © Whisky";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © Sangria";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "A Windows application is trying to access the microphone.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1418,10 +1419,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Whisky/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sangria;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Whisky needs to access Terminal to launcher processes in a Terminal window.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Sangria needs to access Terminal to launch processes in a Terminal window.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "A Windows application is trying to access the camera.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © Whisky";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © Sangria";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "A Windows application is trying to access the microphone.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

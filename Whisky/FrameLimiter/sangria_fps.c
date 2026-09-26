@@ -73,9 +73,13 @@ static uint64_t claim_deadline(const void *layer) {
 }
 
 static id paced_next_drawable(id self, SEL cmd) {
+    /* Acquire-loaded to pair with the release store in try_hook: the original
+       has to be visible to this thread before the hook that calls it is. */
+    IMP original = __atomic_load_n(&original_next_drawable, __ATOMIC_ACQUIRE);
+    if (!original) return nil;
     uint64_t deadline = claim_deadline((const void *)self);
     if (deadline > mach_absolute_time()) mach_wait_until(deadline);
-    return ((id (*)(id, SEL))original_next_drawable)(self, cmd);
+    return ((id (*)(id, SEL))original)(self, cmd);
 }
 
 /* Runs for every image loaded, until CAMetalLayer exists to hook. */
@@ -86,7 +90,17 @@ static void try_hook(const struct mach_header *header, intptr_t slide) {
     if (!original_next_drawable) {
         Class layer = objc_getClass("CAMetalLayer");
         Method method = layer ? class_getInstanceMethod(layer, sel_registerName("nextDrawable")) : NULL;
-        if (method) original_next_drawable = method_setImplementation(method, (IMP)paced_next_drawable);
+        if (method) {
+            /* Store the original *before* publishing the hook. The obvious
+               spelling — assigning the return value of method_setImplementation
+               — installs paced_next_drawable first and only then records what
+               it must call, and any thread that draws a frame in that window
+               calls through a NULL pointer. A render thread is exactly the
+               thread that is doing that. */
+            IMP previous = method_getImplementation(method);
+            __atomic_store_n(&original_next_drawable, previous, __ATOMIC_RELEASE);
+            method_setImplementation(method, (IMP)paced_next_drawable);
+        }
     }
     os_unfair_lock_unlock(&hook_lock);
 }

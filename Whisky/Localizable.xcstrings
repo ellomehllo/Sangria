@@ -84542,6 +84542,23 @@
         }
       }
     },
+    "quickConfig.profile.unity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unity"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unity"
+          }
+        }
+      }
+    },
     "quickConfig.title" : {
       "extractionState" : "manual",
       "localizations" : {

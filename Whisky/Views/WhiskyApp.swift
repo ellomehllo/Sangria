@@ -101,7 +101,7 @@ struct WhiskyApp: App {
     }
 
     var body: some Scene {
-        WindowGroup(id: Self.mainWindowID) {
+        WindowGroup("Sangria", id: Self.mainWindowID) {
             ContentView(showSetup: $showSetup)
                 // Wide enough for two columns of library cards next to the
                 // sidebar. At 600 the grid could only ever draw one.

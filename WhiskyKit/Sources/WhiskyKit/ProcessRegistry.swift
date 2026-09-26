@@ -125,7 +125,6 @@ public final class ProcessRegistry: @unchecked Sendable {
         ensureDisplayWakeAssertionLocked()
 
         logger.info("Registered process '\(programName)' for bottle '\(bottle.url.lastPathComponent)'")
-        announceChange()
     }
 
     /// Updates the PID for a registered process.
@@ -179,7 +178,6 @@ public final class ProcessRegistry: @unchecked Sendable {
                 releaseDisplayWakeAssertionIfIdleLocked()
 
                 logger.info("Unregistered process '\(info.programName)' (PID: \(pid))")
-                announceChange()
                 return
             }
         }

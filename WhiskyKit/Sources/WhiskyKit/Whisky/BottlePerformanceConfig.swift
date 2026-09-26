@@ -25,6 +25,19 @@ public enum PerformancePreset: String, Codable, CaseIterable, Sendable {
     case quality
     case unity // Optimized for Unity games
 
+    /// One or two words, for a segmented control that has to fit four of them.
+    ///
+    /// ``description()`` spells out "Balanced (Default)" and "Unity Games
+    /// Optimized", which is right in a list and far too wide in a segment.
+    public var shortLabel: String {
+        switch self {
+        case .balanced: String(localized: "quickConfig.profile.balanced", bundle: .main)
+        case .performance: String(localized: "quickConfig.profile.performance", bundle: .main)
+        case .quality: String(localized: "quickConfig.profile.quality", bundle: .main)
+        case .unity: String(localized: "quickConfig.profile.unity", bundle: .main)
+        }
+    }
+
     public func description() -> String {
         switch self {
         case .balanced:

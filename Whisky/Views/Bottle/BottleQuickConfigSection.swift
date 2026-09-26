@@ -174,14 +174,19 @@ struct BottleQuickConfigSection: View {
             caption: "quickConfig.profile.caption",
             systemImage: "dial.medium"
         ) {
+            // Every case, not the three that fit neatly. A bottle set to
+            // `.unity` — which the game database does, for Unity titles —
+            // matched no tag here, so the control drew with nothing selected
+            // and the first touch of it silently moved the bottle off that
+            // profile.
             Picker("quickConfig.profile", selection: $bottle.settings.performancePreset) {
-                Text("quickConfig.profile.performance").tag(PerformancePreset.performance)
-                Text("quickConfig.profile.balanced").tag(PerformancePreset.balanced)
-                Text("quickConfig.profile.quality").tag(PerformancePreset.quality)
+                ForEach(PerformancePreset.allCases, id: \.self) { preset in
+                    Text(preset.shortLabel).tag(preset)
+                }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: 260)
+            .frame(maxWidth: 320)
         }
     }
 
