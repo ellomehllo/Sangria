@@ -204,17 +204,21 @@ extension Bottle {
                     .map { (url: $0, peFile: try? PEFile(url: $0)) }
             }.value
 
-            var foundURLS: Set<URL> = []
+            // Keyed by resolved path, not by URL: the scan's URLs come back
+            // symlink-resolved from the enumerator while a pin's come from the
+            // plist unresolved, so comparing them as URLs can miss and add a
+            // second `Program` for a game that is already in the list.
+            var foundPaths: Set<String> = []
             var programs: [Program] = []
             for entry in scanned {
-                foundURLS.insert(entry.url)
+                foundPaths.insert(Bottle.canonicalPath(of: entry.url))
                 programs.append(Program(url: entry.url, bottle: self, peFile: entry.peFile))
             }
 
             // Add missing programs from pins
             for pin in settings.pins {
                 guard let url = pin.url else { continue }
-                guard !foundURLS.contains(url) else { continue }
+                guard !foundPaths.contains(Bottle.canonicalPath(of: url)) else { continue }
                 programs.append(Program(url: url, bottle: self))
             }
 

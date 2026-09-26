@@ -75,7 +75,7 @@ struct GameSettingsView: View {
     private var display: some View {
         Section("settings.display") {
             captioned("settings.windowed", "settings.windowed.caption") {
-                Toggle("", isOn: writeThrough($settings.windowedMode))
+                Toggle("", isOn: writeThrough($settings.windowedMode, .windowed))
                     .labelsHidden()
             }
             captioned("settings.holdMouse", "settings.holdMouse.caption") {
@@ -115,7 +115,7 @@ struct GameSettingsView: View {
                 .labelsHidden()
             }
             captioned("settings.fpsOverlay", "settings.fpsOverlay.caption") {
-                Toggle("", isOn: writeThrough($settings.showFPSOverlay))
+                Toggle("", isOn: writeThrough($settings.showFPSOverlay, .fpsOverlay))
                     .labelsHidden()
             }
         }
@@ -126,15 +126,15 @@ struct GameSettingsView: View {
     private var performance: some View {
         Section("settings.performance") {
             captioned("settings.metalFX", "settings.metalFX.caption") {
-                Toggle("", isOn: writeThrough($settings.metalFXUpscaling))
+                Toggle("", isOn: writeThrough($settings.metalFXUpscaling, .metalFX))
                     .labelsHidden()
             }
             captioned("settings.sync", "settings.sync.caption") {
-                Toggle("", isOn: writeThrough($settings.syncOptimization))
+                Toggle("", isOn: writeThrough($settings.syncOptimization, .sync))
                     .labelsHidden()
             }
             captioned("settings.background", "settings.background.caption") {
-                Toggle("", isOn: writeThrough($settings.limitBackgroundActivity))
+                Toggle("", isOn: writeThrough($settings.limitBackgroundActivity, .backgroundActivity))
                     .labelsHidden()
             }
         }
@@ -233,15 +233,24 @@ struct GameSettingsView: View {
         }
     }
 
-    /// Wraps a switch so that changing it also writes the value onto the
-    /// bottle everything runs in.
-    private func writeThrough(_ binding: Binding<Bool>) -> Binding<Bool> {
+    /// Wraps a switch so that changing it also writes *that one value* onto
+    /// the bottle everything runs in.
+    ///
+    /// The switch names which bottle property it owns. It used to reapply all
+    /// five, so changing any one of them discarded whatever the bottle's own
+    /// Graphics, Performance and Resolution sections had been set to — the
+    /// same properties are reachable from both places, and the blanket write
+    /// won every time.
+    private func writeThrough(
+        _ binding: Binding<Bool>,
+        _ change: GameDefaults.Switch
+    ) -> Binding<Bool> {
         Binding(
             get: { binding.wrappedValue },
             set: { newValue in
                 binding.wrappedValue = newValue
                 guard let bottle = mainBottle else { return }
-                GameDefaults.apply(settings, to: bottle)
+                GameDefaults.apply(change, newValue, to: bottle)
             }
         )
     }

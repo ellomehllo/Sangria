@@ -33,32 +33,60 @@ import WhiskyKit
 /// Play.
 @MainActor
 enum GameDefaults {
-    /// Which app-wide settings reach the bottle, and where they land.
+    /// One app-wide switch, and the single bottle property it owns.
     ///
-    /// | Setting | Bottle property |
-    /// |---|---|
-    /// | Show FPS overlay | `metalHud` |
-    /// | MetalFX upscaling | `metalFX` |
-    /// | Sync optimization | `enhancedSync` (`.msync` / `.none`) |
-    /// | Limit background activity | `disableAppNap` |
-    /// | Run games in a window | `virtualDesktopEnabled` |
+    /// Each case writes *only* its own property. Writing the whole set
+    /// whenever any one of them changed is what let a value chosen in the
+    /// bottle's Graphics, Performance or Resolution section be discarded by
+    /// touching an unrelated switch in Settings — the same five properties are
+    /// reachable from both places, so a blanket rewrite silently won every
+    /// time.
     ///
     /// High-resolution mode and the pointer lock are not here: both are
     /// registry values, so they need ``applyRetinaMode(_:to:)`` and
     /// ``applyPointerLock(_:to:)`` and a running wineserver.
-    static func apply(_ settings: AppSettings, to bottle: Bottle) {
-        bottle.settings.metalHud = settings.showFPSOverlay
-        bottle.settings.metalFX = settings.metalFXUpscaling
-        bottle.settings.enhancedSync = settings.syncOptimization ? .msync : .none
-        bottle.settings.disableAppNap = settings.limitBackgroundActivity
-        // A virtual desktop *is* the windowed mode: the game gets one real Mac
-        // window to draw into — title bar, green fullscreen button, ⌘W —
-        // instead of changing the display mode out from under everything.
-        //
-        // This is the bottle's default. A game with its own answer keeps it:
-        // `Wine.wantsOwnWindow` only falls back here when a program has stated
-        // no preference of its own.
-        bottle.settings.virtualDesktopEnabled = settings.windowedMode
+    enum Switch: CaseIterable {
+        /// Show FPS overlay → `metalHud`.
+        case fpsOverlay
+        /// MetalFX upscaling → `metalFX`.
+        case metalFX
+        /// Sync optimization → `enhancedSync`.
+        case sync
+        /// Limit background activity → `disableAppNap`.
+        case backgroundActivity
+        /// Run games in a window → `virtualDesktopEnabled`. A game with its
+        /// own answer keeps it: `Wine.wantsOwnWindow` only falls back to the
+        /// bottle when a program has stated no preference.
+        case windowed
+
+        /// Reads this switch's value out of the app settings.
+        @MainActor
+        func value(in settings: AppSettings) -> Bool {
+            switch self {
+            case .fpsOverlay: settings.showFPSOverlay
+            case .metalFX: settings.metalFXUpscaling
+            case .sync: settings.syncOptimization
+            case .backgroundActivity: settings.limitBackgroundActivity
+            case .windowed: settings.windowedMode
+            }
+        }
+
+        /// Writes it onto the bottle, and nothing else.
+        @MainActor
+        func write(_ isOn: Bool, to bottle: Bottle) {
+            switch self {
+            case .fpsOverlay: bottle.settings.metalHud = isOn
+            case .metalFX: bottle.settings.metalFX = isOn
+            case .sync: bottle.settings.enhancedSync = isOn ? .msync : .none
+            case .backgroundActivity: bottle.settings.disableAppNap = isOn
+            case .windowed: bottle.settings.virtualDesktopEnabled = isOn
+            }
+        }
+    }
+
+    /// Writes one switch through to the bottle.
+    static func apply(_ change: Switch, _ isOn: Bool, to bottle: Bottle) {
+        change.write(isOn, to: bottle)
     }
 
     /// How firmly Wine holds the mouse pointer inside a game.
@@ -128,12 +156,17 @@ enum GameDefaults {
     /// Brings the app's switches and the main bottle into agreement, once, at
     /// startup.
     ///
-    /// Seed first, then apply: seeding adopts the bottle's value for anything
-    /// the user has never set, so applying afterwards writes back what was
-    /// already there and changes nothing. The one setting that does move is
-    /// the one seeding skips — which is the point.
+    /// Seeding adopts the bottle's value for every switch the user has never
+    /// set, which is the whole of the job for four of the five. Only
+    /// ``Switch/windowed`` is pushed, because seeding deliberately skips it —
+    /// the bottle flag it maps onto was dead until recently and records no
+    /// decision anybody made.
+    ///
+    /// Nothing else is written. Pushing the full set here would undo a value
+    /// set in the bottle's own configuration screens on the next launch, which
+    /// is the startup half of the bug ``apply(_:_:to:)`` fixes on the toggle.
     static func synchronise(_ settings: AppSettings, with bottle: Bottle) {
         seedIfNeeded(settings, from: bottle)
-        apply(settings, to: bottle)
+        apply(.windowed, settings.windowedMode, to: bottle)
     }
 }

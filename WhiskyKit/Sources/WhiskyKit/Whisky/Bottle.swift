@@ -103,8 +103,10 @@ public final class Bottle: ObservableObject, Equatable, Hashable, Identifiable, 
     public var isAvailable: Bool = false
 
     /// The in-flight program scan, if any, used to coalesce concurrent rescans.
-    /// See ``coalesceProgramScan(_:)``.
-    private var programScanTask: Task<Void, Never>?
+    /// See ``coalesceProgramScan(_:)``, which lives in
+    /// `Bottle+ProgramDiscovery.swift` and is the only other thing that touches
+    /// this — hence internal rather than private.
+    var programScanTask: Task<Void, Never>?
 
     // MARK: - Cross-actor access (nonisolated members on @MainActor Bottle)
 
@@ -229,135 +231,4 @@ public final class Bottle: ObservableObject, Equatable, Hashable, Identifiable, 
     /// Conservative: only unambiguously-noise binaries (helpers, crash reporters,
     /// redistributables). Generic `setup.exe`/`installer.exe` are intentionally
     /// excluded because users still need to launch installers.
-    public nonisolated static let noiseExecutableNames: Set<String> = [
-        "steamerrorreporter.exe",
-        "steamerrorreporter64.exe",
-        "steamservice.exe",
-        "steamwebhelper.exe",
-        "steam_monitor.exe",
-        "steamsysinfo.exe",
-        "steamxboxutil.exe",
-        "crashreporter.exe",
-        "crashhandler.exe",
-        "crashpad_handler.exe",
-        "gameoverlayui.exe",
-        "gameoverlayui64.exe",
-        "fossilize-replay.exe",
-        "fossilize-replay64.exe",
-        "gldriverquery.exe",
-        "gldriverquery64.exe",
-        "hardwareupdater.exe",
-        "secure_desktop_capture.exe",
-        "writeminidump.exe",
-        "vc_redist.x86.exe",
-        "vc_redist.x64.exe",
-        "vcredist_x86.exe",
-        "vcredist_x64.exe",
-        "ueprereqsetup_x86.exe",
-        "ueprereqsetup_x64.exe",
-        "crossover html engine.exe"
-    ]
-
-    /// Walks the bottle's `Program Files` directories and returns the URLs of
-    /// installed `.exe` files, excluding ClickOnce cache artifacts, known noise
-    /// executables, and anything in `blocklist`.
-    ///
-    /// This is a pure filesystem read with no actor-isolated state, so callers
-    /// can run it off the main actor — it's the heavy part of repopulating
-    /// ``programs`` for a large bottle.
-    ///
-    /// - Parameters:
-    ///   - driveC: The bottle's `drive_c` directory.
-    ///   - blocklist: User-blocked program URLs to omit.
-    /// - Returns: Discovered executable URLs in filesystem-enumeration order.
-    public nonisolated static func discoverInstalledExecutables(
-        driveC: URL,
-        blocklist: Set<URL>
-    ) -> [URL] {
-        var found: [URL] = []
-        for folderName in ["Program Files", "Program Files (x86)"] {
-            let folderURL = driveC.appending(path: folderName)
-            let enumerator = FileManager.default.enumerator(
-                at: folderURL, includingPropertiesForKeys: [.isExecutableKey], options: [.skipsHiddenFiles]
-            )
-
-            while let url = enumerator?.nextObject() as? URL {
-                guard !url.hasDirectoryPath, url.pathExtension == "exe" else { continue }
-                // Skip ClickOnce cache executables (noisy internal artifacts)
-                guard !url.path.contains("/Apps/2.0/") else { continue }
-                // Skip known launcher helpers and crash reporters that pollute the list
-                guard !noiseExecutableNames.contains(url.lastPathComponent.lowercased()) else { continue }
-                guard !blocklist.contains(url) else { continue }
-                found.append(url)
-            }
-        }
-        return found
-    }
-
-    /// Runs a program rescan, coalescing concurrent callers onto one scan.
-    ///
-    /// If a scan is already in flight this awaits *that* scan instead of starting
-    /// a duplicate or returning early. The distinction matters versus an
-    /// early-return guard: a caller that bailed out would then read whatever
-    /// ``programs`` happened to hold (e.g. the Start Menu auto-pin pinning against
-    /// an empty list), whereas awaiting means the caller observes the in-flight
-    /// scan's freshly published results before it proceeds. The owning call clears
-    /// the handle when its scan finishes, so the next call starts a fresh scan.
-    ///
-    /// The coalesced result reflects the in-flight scan, which began at the
-    /// *owning* call — so a caller that must observe a change it made after that
-    /// scan started should rescan once the current one completes.
-    ///
-    /// - Parameter scan: The rescan body; should publish into ``programs`` and
-    ///   manage ``programsLoading``. Only the owning call runs it — coalesced
-    ///   callers just await the shared result.
-    public func coalesceProgramScan(_ scan: @escaping @MainActor () async -> Void) async {
-        if let existing = programScanTask {
-            await existing.value
-            return
-        }
-        let task = Task { @MainActor in await scan() }
-        programScanTask = task
-        defer { programScanTask = nil }
-        await task.value
-    }
-
-    // MARK: - Equatable
-
-    public nonisolated static func == (lhs: Bottle, rhs: Bottle) -> Bool {
-        lhs.url == rhs.url
-    }
-
-    // MARK: - Hashable
-
-    public nonisolated func hash(into hasher: inout Hasher) {
-        hasher.combine(url)
-    }
-
-    // MARK: - Comparable
-
-    public static func < (lhs: Bottle, rhs: Bottle) -> Bool {
-        lhs.settings.name.lowercased() < rhs.settings.name.lowercased()
-    }
-}
-
-// MARK: - Program Sequence Extensions
-
-@MainActor
-public extension Sequence where Iterator.Element == Program {
-    /// Returns only the pinned programs from the sequence.
-    ///
-    /// Use this to filter a collection of programs to show favorites or
-    /// frequently-used applications.
-    var pinned: [Program] {
-        self.filter(\.pinned)
-    }
-
-    /// Returns only the unpinned programs from the sequence.
-    ///
-    /// Use this alongside ``pinned`` to separate programs into categories
-    /// in the user interface.
-    var unpinned: [Program] {
-        self.filter { !$0.pinned }
-    }
 }
