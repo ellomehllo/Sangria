@@ -164,13 +164,30 @@ final class GamesBrowserModel: ObservableObject {
     /// Adds a shortcut. Copies nothing and moves nothing — the game stays
     /// exactly where it is.
     func addToLibrary(_ entry: GamesEntry) {
-        guard let bottle, let root, let url = root.resolve(entry.url), !isInLibrary(entry) else { return }
+        guard let root, let url = root.resolve(entry.url), !isInLibrary(entry) else { return }
+        pin(url, announce: true)
+    }
+
+    /// Puts an executable in the library, wherever on the C: drive it lives.
+    ///
+    /// Not routed through ``GamesRoot`` on purpose: a game picked by hand can
+    /// sit in `Program Files` — an installer put it there — and refusing to
+    /// remember it because it is outside `C:\Games` would leave the one place
+    /// that can reach it unable to keep it. A pin outside the Games folder
+    /// simply carries no relative path and stays absolute.
+    @discardableResult
+    func pin(_ url: URL, announce: Bool) -> Bool {
+        guard let bottle else { return false }
+        guard !bottle.settings.pins.contains(where: { $0.url == url }) else { return false }
         let name = url.deletingPathExtension().lastPathComponent
         bottle.settings.pins.append(PinnedProgram(name: name, url: url, gamesRoot: root))
         // A game added on purpose is no longer a game the user refused, so the
         // Start Menu scan may pin it again later without arguing with itself.
         bottle.settings.unpinnedPrograms.removeAll { $0 == url }
-        toast = ToastData(message: String(localized: "games.toast.addedToLibrary \(name)"), style: .success)
+        if announce {
+            toast = ToastData(message: String(localized: "games.toast.addedToLibrary \(name)"), style: .success)
+        }
+        return true
     }
 
     // MARK: - Playing
@@ -183,6 +200,29 @@ final class GamesBrowserModel: ObservableObject {
     /// to Wine they are the same kind of thing.
     func play(_ entry: GamesEntry) {
         guard let bottle, let root, let url = root.resolve(entry.url) else { return }
+        guard !starting.contains(url) else { return }
+
+        starting.insert(url)
+        Task {
+            let result = await GameLauncher.play(url, in: bottle)
+            starting.remove(url)
+            toast = result.toastData
+        }
+    }
+
+    /// Plays a program the user picked by hand, and keeps it.
+    ///
+    /// This is the Games tab's headline action. It is the only way in normal
+    /// mode to reach a game that is not under `C:\Games` — an installer that
+    /// dropped one into `Program Files`, say — which until now needed
+    /// Developer Mode and a button called "Run Program…".
+    ///
+    /// The pin happens first, and whether or not the game then starts: if a
+    /// launch fails, the thing you picked should still be in your library to
+    /// try again, not something you have to go and find a second time.
+    func playPicked(_ url: URL) {
+        guard let bottle else { return }
+        pin(url, announce: false)
         guard !starting.contains(url) else { return }
 
         starting.insert(url)

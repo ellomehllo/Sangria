@@ -167,6 +167,7 @@
 		628A38297B1821ADEFFD848F /* BottleVM+CreationDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36054FEC8FD8B6FD5A297CA3 /* BottleVM+CreationDiagnostics.swift */; };
 		EDEFEDF1FEC784F8C96979F7 /* CasualModeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2853B15782DC23C8718586 /* CasualModeUITests.swift */; };
 		3B19A3B02A7A17967C2DEC88 /* MouseReleaseHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D9446437CDE7B5FE88BB19 /* MouseReleaseHotkey.swift */; };
+		01041674BF4D74C256D5FDB7 /* GamesBrowserRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88EBC7A84CA737004226964E /* GamesBrowserRows.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -384,6 +385,7 @@
 		36054FEC8FD8B6FD5A297CA3 /* BottleVM+CreationDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BottleVM+CreationDiagnostics.swift"; sourceTree = "<group>"; };
 		5E2853B15782DC23C8718586 /* CasualModeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CasualModeUITests.swift; sourceTree = "<group>"; };
 		02D9446437CDE7B5FE88BB19 /* MouseReleaseHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseReleaseHotkey.swift; sourceTree = "<group>"; };
+		88EBC7A84CA737004226964E /* GamesBrowserRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamesBrowserRows.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -818,6 +820,7 @@
 		1F42FF28DBF4309BBC55F139 /* Games */ = {
 			isa = PBXGroup;
 			children = (
+				88EBC7A84CA737004226964E /* GamesBrowserRows.swift */,
 				75502AA5020EAB9B9CEA7D29 /* GamesBrowserView.swift */,
 			);
 			path = Games;
@@ -1072,6 +1075,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01041674BF4D74C256D5FDB7 /* GamesBrowserRows.swift in Sources */,
 				3B19A3B02A7A17967C2DEC88 /* MouseReleaseHotkey.swift in Sources */,
 				628A38297B1821ADEFFD848F /* BottleVM+CreationDiagnostics.swift in Sources */,
 				B3D38C4209A4464835A1E82A /* BottleVM+MainBottle.swift in Sources */,

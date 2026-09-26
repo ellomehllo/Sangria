@@ -203,6 +203,17 @@ struct GamesBrowserView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        // The tab's headline action, and the only way in normal mode to start
+        // a game that is not under C:\Games. It is what Developer Mode called
+        // "Run Program…", with a name a player recognises and a library entry
+        // so it never has to be found by hand twice.
+        ToolbarItem(placement: .primaryAction) {
+            Button("games.play", systemImage: "play.fill") {
+                choosePlay()
+            }
+            .disabled(model.root == nil)
+            .accessibilityIdentifier("games.play")
+        }
         ToolbarItem(placement: .primaryAction) {
             Button("games.newFolder", systemImage: "folder.badge.plus") {
                 newFolderName = ""
@@ -258,6 +269,34 @@ struct GamesBrowserView: View {
         }
     }
 
+    /// Picks a game to play, and keeps it in the library.
+    ///
+    /// Unlike the installer picker below, this one is *not* confined to
+    /// `C:\Games`. It opens there because that is where games usually are, but
+    /// it lets you walk anywhere on the C: drive — an installer that put a game
+    /// in `Program Files` leaves it somewhere the Games browser cannot show,
+    /// and refusing to launch it would mean Developer Mode is the only way to
+    /// play your own game.
+    private func choosePlay() {
+        guard let root = model.root else { return }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.directoryURL = model.current ?? root.url
+        panel.allowedContentTypes = [
+            UTType.exe,
+            UTType(exportedAs: "com.microsoft.msi-installer"),
+            UTType(exportedAs: "com.microsoft.bat")
+        ]
+        panel.message = String(localized: "games.play.prompt")
+        panel.prompt = String(localized: "games.play")
+        panel.begin { result in
+            guard result == .OK, let picked = panel.urls.first else { return }
+            model.playPicked(picked)
+        }
+    }
+
     /// Picks a setup file. The panel opens in the Games folder, and anything
     /// chosen from outside it is refused rather than run.
     private func chooseInstaller() {
@@ -283,104 +322,5 @@ struct GamesBrowserView: View {
             }
             runInstaller(GamesEntry(url: safe, isDirectory: false))
         }
-    }
-}
-
-/// One file or folder.
-private struct GamesRow: View {
-    let entry: GamesEntry
-    let isStarting: Bool
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol)
-                .foregroundStyle(entry.isExecutable ? AnyShapeStyle(Color.brandBlue) : AnyShapeStyle(.secondary))
-                .frame(width: 18)
-            Text(entry.name)
-            Spacer()
-            if isStarting {
-                ProgressView()
-                    .controlSize(.small)
-            } else if let detail {
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            if entry.isDirectory {
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var symbol: String {
-        if entry.isDirectory { return "folder.fill" }
-        if entry.isInstaller { return "shippingbox" }
-        if entry.isExecutable { return "gamecontroller.fill" }
-        return "doc"
-    }
-
-    private var detail: String? {
-        guard !entry.isDirectory, let size = entry.size else { return nil }
-        return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
-    }
-}
-
-/// What an installer left behind, offered as shortcuts.
-private struct InstalledGamesSheet: View {
-    let games: [GamesEntry]
-    let add: ([GamesEntry]) -> Void
-
-    @State private var selected: Set<URL> = []
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List(games) { game in
-                Toggle(isOn: binding(for: game)) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(game.url.deletingPathExtension().lastPathComponent)
-                        Text(game.url.deletingLastPathComponent().lastPathComponent)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .navigationTitle("games.installed.title")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("button.cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("games.addToLibrary") {
-                        add(games.filter { selected.contains($0.url) })
-                        dismiss()
-                    }
-                    .disabled(selected.isEmpty)
-                }
-            }
-        }
-        .frame(width: ViewWidth.medium, height: 320)
-        .onAppear {
-            // Everything ticked: the user just ran an installer, so adding
-            // what it produced is the expected answer, not a decision.
-            selected = Set(games.map(\.url))
-        }
-    }
-
-    private func binding(for game: GamesEntry) -> Binding<Bool> {
-        Binding(
-            get: { selected.contains(game.url) },
-            set: { isOn in
-                if isOn {
-                    selected.insert(game.url)
-                } else {
-                    selected.remove(game.url)
-                }
-            }
-        )
     }
 }

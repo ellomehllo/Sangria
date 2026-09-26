@@ -69500,6 +69500,40 @@
         }
       }
     },
+    "games.play" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        }
+      }
+    },
+    "games.play.prompt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a game to play. It will be added to your library so you can start it from there next time."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a game to play. It will be added to your library so you can start it from there next time."
+          }
+        }
+      }
+    },
     "games.rename" : {
       "extractionState" : "manual",
       "localizations" : {

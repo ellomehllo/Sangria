@@ -53,6 +53,20 @@ enum GameLauncher {
         if !useTerminal {
             MouseReleaseHotkey.shared.gameStarted()
         }
+        // A .bat is not a program with settings and a run log; it is a script,
+        // and Wine runs it a different way. Handled here rather than at each
+        // call site so that a batch file pinned to the library replays the same
+        // way it was first started.
+        if url.pathExtension.lowercased() == "bat" {
+            do {
+                try await Wine.runBatchFile(url: url, bottle: bottle)
+                return .launchedSuccessfully(programName: url.lastPathComponent)
+            } catch {
+                return .launchFailed(
+                    programName: url.lastPathComponent, errorDescription: error.localizedDescription
+                )
+            }
+        }
         return await program(for: url, in: bottle).launchWithUserMode(useTerminal: useTerminal)
     }
 }
