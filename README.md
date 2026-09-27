@@ -18,7 +18,7 @@
 
 > ### ***"Try running your fav games from Steam or Epic Games. If you are trying to run a cracked game, make sure it is pre-installed, then transfer the files to your Mac.***
 >
-> ### ***I have tested Pragmata, all the Resident Evil games, and Truck Simulator. I'm still testing more games on it — if something comes up, let me know and I'll fix it."***
+> ### ***I have tested all the Resident Evil games and Truck Simulator. I'm still testing more games on it — if something comes up, let me know and I'll fix it."***
 
 ---
 
